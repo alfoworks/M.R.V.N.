@@ -45,7 +45,7 @@ class MrvnModuleHandler(modular.ModuleHandler):
 
 
 bot = modular.Bot("M.R.V.N.", MrvnModuleHandler(),
-                  modular.CommandHandler(modular.PrefixContextGenerator("?"), MrvnConfig.guild_whitelist),
+                  modular.CommandHandler(modular.PrefixContextGenerator("!"), MrvnConfig.guild_whitelist),
                   time.time())
 
 logger.info("Загрузка модулей...")
