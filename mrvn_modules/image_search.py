@@ -34,11 +34,18 @@ class ImageSearchModule(Module):
                                                        "key": ImageSearchModule.api_key,
                                                        "cx": ImageSearchModule.cx}) as response:
 
-                            if response.status != 200:
-                                await ctx.send_embed(EmbedType.ERROR, "Произошла ошибка API.")
-                                return
-
                             data = await response.json()
+
+                            if response.status != 200:
+                                if data["error"]["status"] == "RESOURCE_EXHAUSTED":
+                                    await ctx.send_embed(EmbedType.ERROR,
+                                                         "Команда временно недоступна, так как было превышено "
+                                                         "количество запросов к API у бота. Попробуйте "
+                                                         "выполнить её позже.")
+                                else:
+                                    await ctx.send_embed(EmbedType.ERROR,
+                                                         "Произошла ошибка API:\n%s" % data["error"]["status"])
+                                return
 
                             if data["searchInformation"]["totalResults"] == "0":
                                 await ctx.send_embed(EmbedType.ERROR,

@@ -4,22 +4,25 @@ import time
 import discord
 
 from decorators import mrvn_module
-from modular import Module
+from modular import Module, LanguageUtils
 
 
 @mrvn_module("BotStatus", "Установка статуса бота, отображение аптайма в нём.")
 class BotStatusModule(Module):
     async def status_update_task(self):
-        while True:
-            uptime = time.time() - self.bot.start_time
+        beu = False
 
+        while True:
+            status = "🐖 Беубасс" if beu else "🕒 Аптайм: %s" % LanguageUtils.formatted_duration(
+                time.time() - self.bot.start_time)
             await self.bot.change_presence(status=discord.Status.idle,
                                            activity=discord.Activity(
-                                               # name="🆙 Аптайм: %s" % LanguageUtils.formatted_duration(uptime),
-                                               name="🐖 Беубасс",
+                                               name=status,
                                                type=discord.ActivityType.listening))
 
-            await asyncio.sleep(15)
+            beu = not beu
+
+            await asyncio.sleep(60)
 
     async def on_enable(self):
         self.logger.info("Запуск таска обновления статуса...")
