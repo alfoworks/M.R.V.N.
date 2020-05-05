@@ -20,7 +20,8 @@ def mrvn_module(name: str, desc: str):
 
 
 def mrvn_command(module: modular.Module, name: str, desc: str, args_desc: str = "", keys_desc=None,
-                 perm_handler: modular.PermissionHandler = None, should_await: bool = True):
+                 perm_handler: modular.PermissionHandler = None, should_await: bool = True,
+                 special_handler: modular.CommandHandler = None):
     if keys_desc is None:
         keys_desc = []
 
@@ -28,7 +29,9 @@ def mrvn_command(module: modular.Module, name: str, desc: str, args_desc: str = 
         perm_handler = modular.AcceptAllPermissionHandler()
 
     def decorator(cls):
-        module.bot.command_handler.register_command(
+        handler: modular.CommandHandler = module.bot.command_handler if special_handler is None else special_handler
+
+        handler.register_command(
             cls(name, desc, args_desc, keys_desc, perm_handler, module, should_await))
 
         return cls

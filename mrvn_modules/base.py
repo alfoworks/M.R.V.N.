@@ -13,7 +13,7 @@ from modular import Module, Command, CommandContext, CommandResult, EmbedType, D
 class BaseModule(Module):
     async def on_enable(self):
         @mrvn_command(self, "cmds", "Список команд, их аргументы и описание.", keys_desc=["--all"])
-        class HelpCommand(Command):
+        class CmdsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "", title="Список команд")
 

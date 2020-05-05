@@ -1,6 +1,7 @@
 import inspect
 import os
 import time
+import traceback
 
 import discord
 
@@ -14,8 +15,12 @@ class MrvnModuleHandler(modular.ModuleHandler):
     def load_modules(self):
         for file in os.listdir(MrvnConfig.modules_dir):
             if file.endswith(".py"):
-                module_file = __import__("%s.%s" % (MrvnConfig.modules_dir, file[:-3]), globals(), locals(),
-                                         fromlist=["py"])
+                try:
+                    module_file = __import__("%s.%s" % (MrvnConfig.modules_dir, file[:-3]), globals(), locals(),
+                                             fromlist=["py"])
+                except Exception:
+                    logger.error("Не удалось загрузить файл %s:\n%s" % (file, traceback.format_exc()))
+                    continue
 
                 classes = inspect.getmembers(module_file, inspect.isclass)
 
@@ -60,7 +65,10 @@ async def on_ready():
     logger.info("Включение модулей...")
 
     for module in bot.module_handler.modules:
-        await module.on_enable()
+        try:
+            await module.on_enable()
+        except Exception:
+            logger.error("Не удалось включить модуль %s!\n%s" % (module.name, traceback.format_exc()))
 
     logger.ok("===============")
 

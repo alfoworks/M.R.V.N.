@@ -6,7 +6,7 @@ import pickle
 import random
 import traceback
 from enum import Enum
-from typing import List, Coroutine
+from typing import List, Coroutine, Dict
 
 import discord
 
@@ -178,7 +178,7 @@ class AcceptAllPermissionHandler(PermissionHandler):
 
 
 class DiscordPermissionHandler(PermissionHandler):
-    permissions: List[str] = []
+    permissions: List[str]
 
     def __init__(self, permissions: List[str]):
         self.permissions = permissions
@@ -189,6 +189,16 @@ class DiscordPermissionHandler(PermissionHandler):
                 return False
 
         return True
+
+
+class UserWhitelistPermissionHandler(PermissionHandler):
+    user_ids: List[int]
+
+    def __init__(self, user_ids: List[int]):
+        self.user_ids = user_ids
+
+    def has_permission(self, member: discord.Member) -> bool:
+        return member.id in self.user_ids
 
 
 class EmbedType(Enum):
@@ -205,6 +215,9 @@ class CommandContext:
     clean_args: List[str]
     keys: List[str]
 
+    message_limit = 2048
+    too_big_message = "***Размер сообщение был превышен и обрезан до %s символов***" % message_limit
+
     def __init__(self, message: discord.Message, command_str: str, args: List[str], clean_args: List[str],
                  keys: List[str], abstract_content: str):
         self.message = message
@@ -214,24 +227,52 @@ class CommandContext:
         self.command_str = command_str
         self.abstract_content = abstract_content
 
-    def get_custom_embed(self, message: str, title: str, color: int) -> discord.Embed:
-        embed = discord.Embed(color=color, description=message, title="**%s**" % title)
+    @staticmethod
+    def limit_message(message: str):
+        if len(message) <= 2048:
+            return message
 
-        embed.set_footer(icon_url=self.message.author.avatar_url, text="Запросил: %s" % "%s#%s" % (
-            self.message.author.display_name, self.message.author.discriminator))
+        limited = ("%s\n%s" % (CommandContext.too_big_message, message))[:2048]
+
+        return limited
+
+    def get_custom_embed(self, message: str, title: str, color: int, sign: bool = True) -> discord.Embed:
+        embed = discord.Embed(color=color, description=self.limit_message(message) if message is not None else None,
+                              title="**%s**" % title)
+
+        if sign:
+            embed.set_footer(icon_url=self.message.author.avatar_url, text="Запросил: %s" % "%s#%s" % (
+                self.message.author.display_name, self.message.author.discriminator))
+
+            embed.timestamp = self.message.created_at
 
         return embed
 
-    def get_embed(self, embed_type: EmbedType, message: str, title: str = None):
+    @staticmethod
+    def get_custom_embed_static(message: str, title: str, color: int) -> discord.Embed:
+        embed = discord.Embed(color=color,
+                              description=CommandContext.limit_message(message) if message is not None else None,
+                              title="**%s**" % title)
+
+        return embed
+
+    def get_embed(self, embed_type: EmbedType, message: str, title: str = None, sign: bool = True):
         color = self.message.guild.me.top_role.color if embed_type == EmbedType.INFO else embed_type.value[0]
 
-        return self.get_custom_embed(message, embed_type.value[1] if title is None else title, color)
+        return self.get_custom_embed(message, embed_type.value[1] if title is None else title, color, sign)
 
-    async def send_embed(self, embed_type: EmbedType, message: str, title: str = None):
-        await self.message.channel.send(embed=self.get_embed(embed_type, message, title))
+    async def send_embed(self, embed_type: EmbedType, message: str, title: str = None,
+                         channel_to_send: discord.TextChannel = None, sign: bool = True):
+        channel = self.message.channel if channel_to_send is None else channel_to_send
 
-    async def send(self, message: str, reply: bool = False):
-        await self.message.channel.send(("%s, %s" % (self.message.author.mention, message)) if reply else message)
+        await channel.send(embed=self.get_embed(embed_type, message, title, sign=sign))
+
+    async def send(self, message: str, reply: bool = False, channel_to_send: discord.TextChannel = None):
+        message = self.limit_message(message)
+
+        channel = self.message.channel if channel_to_send is None else channel_to_send
+
+        await channel.send(("%s, %s" % (self.message.author.mention, message)) if reply else message)
 
 
 class ContextGenerator:
@@ -250,7 +291,7 @@ class PrefixContextGenerator(ContextGenerator):
             return None
 
         args = message.content.split()
-        clean_args = message.content.split()[1:]
+        clean_args = message.clean_content.split()[1:]
         command = args.pop(0)[len(self.prefix):].lower()
 
         keys = []
@@ -260,6 +301,7 @@ class PrefixContextGenerator(ContextGenerator):
 
         for i, key in enumerate(keys):
             args.remove(key)
+            clean_args.remove(key)
             keys[i] = key[2:]
 
         return CommandContext(message, command, args, clean_args, keys, message.content[len(self.prefix):])
@@ -273,9 +315,10 @@ class CommandResult:
     message: str
     title: str
     color: int
+    wait_emoji: bool
 
     def __init__(self, error: bool, message: str, embed_type: EmbedType, title: str = None, color: int = None,
-                 args_error: bool = False, access_denied: bool = False):
+                 args_error: bool = False, access_denied: bool = False, wait_emoji=False):
         self.error = error
         self.message = message
         self.title = title
@@ -283,10 +326,11 @@ class CommandResult:
         self.embed_type = embed_type
         self.args_error = args_error
         self.access_denied = access_denied
+        self.wait_emoji = wait_emoji
 
     @staticmethod
-    def ok(message: str = None, title: str = None, color: int = None):
-        return CommandResult(False, message, EmbedType.OK, title, color)
+    def ok(message: str = None, title: str = None, color: int = None, wait_emoji=False):
+        return CommandResult(False, message, EmbedType.OK, title, color, wait_emoji=wait_emoji)
 
     @staticmethod
     def info(message: str = None, title: str = None, color: int = None):
@@ -314,8 +358,14 @@ class Command:
     module: Module
     should_await: bool
 
-    def __init__(self, name: str, description: str, args_description: str, keys_description: List[str],
-                 perm_handler: PermissionHandler, module: Module, should_await: bool):
+    def __init__(self, name: str, description: str, args_description: str = "", keys_description=None,
+                 perm_handler: PermissionHandler = None, module: Module = None, should_await: bool = True):
+        if keys_description is None:
+            keys_description = []
+
+        if perm_handler is None:
+            perm_handler = AcceptAllPermissionHandler()
+
         self.name = name
         self.description = description
         self.args_description = args_description
@@ -344,7 +394,8 @@ class CommandHandler:
         "ok": "☑",
         "error": "❌",
         "access_denied": "🚫",
-        "args_error": "⁉"
+        "args_error": "⁉",
+        "wait": "⏳"
     }
 
     access_denied_messages = ["Нет прав!", "Прав не завезли.", "Вы точно уверены? (да/нет)", "Что-то пошло не так. "
@@ -353,15 +404,18 @@ class CommandHandler:
                               "Действие НЕ выполнено. Не знаю, почему.",
                               "[ACCESS DENIED!](https://www.youtube.com/watch?v=2dZy3cd9KFY)"]
 
-    commands = {}
+    commands: Dict[str, Command]
     context_generator: ContextGenerator
-    whitelist = []
+    whitelist: List[int]
     logger: Logger
 
     def __init__(self, context_generator: ContextGenerator, whitelist: List[int]):
         self.context_generator = context_generator
         self.whitelist = whitelist
         self.logger = Logger('CommandHandler')
+
+        self.commands = {}
+        self.whitelist = whitelist
 
     async def handle(self, message: discord.Message):
         context = self.context_generator.process_message(message)
@@ -410,9 +464,12 @@ class CommandHandler:
                     if result.access_denied:
                         result = CommandResult.error(random.choice(self.access_denied_messages), "Нет прав!")
                         emoji = self.emojis["access_denied"]
+                    elif result.wait_emoji:
+                        emoji = self.emojis["wait"]
                 else:
                     asyncio.ensure_future(command.execute(context))
                     result = CommandResult.ok()
+                    emoji = self.emojis["wait"]
 
         embed = context.get_embed(result.embed_type, result.message, result.title)
 
