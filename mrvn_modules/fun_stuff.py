@@ -163,7 +163,7 @@ class FunStuffModule(Module):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 out = ""
 
-                for i in range(random.randint(0, 16)):
+                for i in range(random.randint(1, 16)):
                     out += random.choice(self.phrases) + " "
 
                 return CommandResult.info(out, "Шутник 3000")
