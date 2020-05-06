@@ -13,35 +13,36 @@ logger = modular.Logger("Main")
 
 class MrvnModuleHandler(modular.ModuleHandler):
     def load_modules(self):
-        for file in os.listdir(MrvnConfig.modules_dir):
-            if file.endswith(".py"):
-                try:
-                    module_file = __import__("%s.%s" % (MrvnConfig.modules_dir, file[:-3]), globals(), locals(),
-                                             fromlist=["py"])
-                except Exception:
-                    logger.error("Не удалось загрузить файл %s:\n%s" % (file, traceback.format_exc()))
-                    continue
+        for modules_dir in MrvnConfig.modules_dirs:
+            for file in os.listdir(modules_dir):
+                if file.endswith(".py"):
+                    try:
+                        module_file = __import__("%s.%s" % (modules_dir, file[:-3]), globals(), locals(),
+                                                 fromlist=["py"])
+                    except Exception:
+                        logger.error("Не удалось загрузить файл %s:\n%s" % (file, traceback.format_exc()))
+                        continue
 
-                classes = inspect.getmembers(module_file, inspect.isclass)
+                    classes = inspect.getmembers(module_file, inspect.isclass)
 
-                if len(classes) == 0:
-                    logger.error("Не удалось загрузить файл %s. Файл не содержит классов." % file)
-                    continue
+                    if len(classes) == 0:
+                        logger.error("Не удалось загрузить файл %s. Файл не содержит классов." % file)
+                        continue
 
-                loaded = False
+                    loaded = False
 
-                for cls in classes:
-                    if cls[1] != modular.Module and issubclass(cls[1], modular.Module):
-                        module = cls[1](bot)
-                        self.load_module(module)
-                        loaded = True
+                    for cls in classes:
+                        if cls[1] != modular.Module and issubclass(cls[1], modular.Module):
+                            module = cls[1](bot)
+                            self.load_module(module)
+                            loaded = True
 
-                        logger.info("Загружен модуль %s" % module.name)
+                            logger.info("Загружен модуль %s" % module.name)
 
-                        break
+                            break
 
-                if not loaded:
-                    logger.error("Не удалось загрузить файл %s. Файл не содержит класса модуля." % file)
+                    if not loaded:
+                        logger.error("Не удалось загрузить файл %s. Файл не содержит класса модуля." % file)
 
 
 bot = modular.Bot("M.R.V.N.", MrvnModuleHandler(),

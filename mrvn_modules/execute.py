@@ -60,7 +60,7 @@ class ExecuteModule(Module):
     user_list = [287157820233875458, 308653925379211264, 337762030138163200, 327420598588276736]
 
     async def on_enable(self):
-        @mrvn_command(self, "execute", "Выполнить Python-код из сообщения", "<\\`\\`\\`Python код\\`\\`\\`",
+        @mrvn_command(self, "execute", "Выполнить Python-код из сообщения", "<\\`\\`\\`Python код\\`\\`\\`>",
                       perm_handler=UserWhitelistPermissionHandler(self.user_list))
         class ExecuteCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
