@@ -288,7 +288,7 @@ class ModerationModule(Module):
 
                 return CommandResult.ok()
 
-    async def on_discord_event(self, event_name, *args, **kwargs):
+    async def on_event(self, event_name, *args, **kwargs):
         if event_name != "on_member_join":
             return
 

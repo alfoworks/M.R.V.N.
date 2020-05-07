@@ -59,7 +59,7 @@ class KGBModule(Module):
                 self.invites_cached = invites
                 return invites[code][1].inviter
 
-    async def on_discord_event(self, event_name, *args, **kwargs):
+    async def on_event(self, event_name, *args, **kwargs):
         if event_name == "on_message_delete":
             message: discord.Message = args[0]
 

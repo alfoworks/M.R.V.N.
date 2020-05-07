@@ -101,7 +101,7 @@ class Module:
     async def on_enable(self):
         pass
 
-    async def on_discord_event(self, event_name, *args, **kwargs):
+    async def on_event(self, event_name, *args, **kwargs):
         pass
 
 
@@ -393,6 +393,16 @@ class Command:
         return name
 
 
+class CommandListener:
+    module: Module
+
+    def __init__(self, module: Module):
+        self.module = module
+
+    async def on_command_execute(self, command: Command, result: CommandResult, ctx: CommandContext):
+        pass
+
+
 class CommandHandler:
     emojis = {
         "ok": "☑",
@@ -409,6 +419,7 @@ class CommandHandler:
                               "[ACCESS DENIED!](https://www.youtube.com/watch?v=2dZy3cd9KFY)"]
 
     commands: Dict[str, Command]
+    command_listeners: Dict[str, CommandListener]
     context_generator: ContextGenerator
     whitelist: List[int]
     logger: Logger
@@ -419,6 +430,7 @@ class CommandHandler:
         self.logger = Logger('CommandHandler')
 
         self.commands = {}
+        self.command_listeners = {}
         self.whitelist = whitelist
 
     async def handle(self, message: discord.Message):
@@ -441,7 +453,7 @@ class CommandHandler:
                 ratio = difflib.SequenceMatcher(None, context.command_str, command.name).ratio()
 
                 if ratio > 0.5:
-                    similar_commands.append("%s (%s)" % (command.name, ratio))
+                    similar_commands.append("%s" % command.name)
 
             result = CommandResult.error("Ты %s\n%s" % (
                 context.abstract_content,
@@ -475,6 +487,9 @@ class CommandHandler:
                     result = CommandResult.ok()
                     emoji = self.emojis["wait"]
 
+                for listener in list(self.command_listeners.values()):
+                    asyncio.ensure_future(listener.on_command_execute(command, result, context))
+
         embed = context.get_embed(result.embed_type, result.message, result.title)
 
         if result.args_error and command:
@@ -500,10 +515,16 @@ class CommandHandler:
 
         self.logger.info("Отгружена команда %s модуля %s" % (command.name, command.module.name))
 
+    def register_listener(self, listener: CommandListener):
+        self.command_listeners[listener.module.name] = listener
+
     def unregister_module_commands(self, module_name: str):
         for command in list(self.commands.values()):
             if command.module.name == module_name:
                 self.unregister_command(command)
+
+        if module_name in self.command_listeners:
+            del self.command_listeners[module_name]
 
 
 class Bot(discord.Client):
@@ -530,7 +551,7 @@ class Bot(discord.Client):
     async def run_modules_event(self, event_name, *args, **kwargs):
         for module in self.module_handler.modules:
             try:
-                await module.on_discord_event(event_name, *args, **kwargs)
+                await module.on_event(event_name, *args, **kwargs)
             except Exception:
                 self.logger.error(
                     "Ошибка при выполнении ивента %s модулем %s:\n%s" % (

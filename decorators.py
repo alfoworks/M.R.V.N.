@@ -37,3 +37,16 @@ def mrvn_command(module: modular.Module, name: str, desc: str, args_desc: str = 
         return cls
 
     return decorator
+
+
+def command_listener(module: modular.Module, special_handler: modular.CommandHandler = None):
+    def decorator(cls):
+        handler: modular.CommandHandler = module.bot.command_handler if special_handler is None else special_handler
+
+        listener = cls(module)
+
+        handler.register_listener(listener)
+
+        return cls
+
+    return decorator

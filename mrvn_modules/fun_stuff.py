@@ -168,7 +168,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Шутник 3000")
 
-    async def on_discord_event(self, event_name, *args, **kwargs):
+    async def on_event(self, event_name, *args, **kwargs):
         if event_name != "on_message":
             return
 
