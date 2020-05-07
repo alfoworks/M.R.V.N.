@@ -1,5 +1,5 @@
 class MrvnConfig:
-    modules_dir = "mrvn_modules"  # Папка, откуда будут загружаться модули.
+    modules_dirs = ["mrvn_modules"]  # Папка, откуда будут загружаться модули.
     ignored_modules = [""]  # ИМЕНА ФАЙЛОВ модулей, которые будут проигнорированы при загрузке.
 
     guild_whitelist = []  # Белый список серверов

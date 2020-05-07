@@ -80,12 +80,17 @@ class ImageSearchModule(Module):
                     return CommandResult.args_error()
 
                 index = None
-
-                if len(ctx.keys) != 0 and ctx.keys[0].startswith("index="):
-                    try:
-                        index = int(ctx.keys[0].split("index=")[1])
-                    except ValueError:
-                        pass
+                try:
+                    index = int(ctx.keys["index"])
+                except ValueError:
+                    pass
+                except KeyError:
+                    pass
+                # if len(ctx.raw_keys) != 0 and ctx.raw_keys[0].startswith("index="):
+                #     try:
+                #         index = int(ctx.raw_keys[0].split("index=")[1])
+                #     except ValueError:
+                #         pass
 
                 await self.module.bot.module_handler.add_background_task(
                     self.image_task(ctx, " ".join(ctx.clean_args), index),
