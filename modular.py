@@ -4,12 +4,14 @@ import difflib
 import os
 import pickle
 import random
+import re
 import traceback
 from enum import Enum
-from typing import List, Coroutine, Dict
+from typing import List, Coroutine, Dict, Union
 
 import discord
 
+key_regex = re.compile(r"--([^\s=]+)(?:=(\S+))?")
 
 class LanguageUtils:
     @staticmethod
@@ -213,16 +215,18 @@ class CommandContext:
     command_str: str
     args: List[str]
     clean_args: List[str]
-    keys: List[str]
+    raw_keys: List[str]
+    keys: Dict[str, Union[str, bool]]
 
     message_limit = 2048
     too_big_message = "***Размер сообщение был превышен и обрезан до %s символов***" % message_limit
 
     def __init__(self, message: discord.Message, command_str: str, args: List[str], clean_args: List[str],
-                 keys: List[str], abstract_content: str):
+                 raw_keys: List[str], keys: Dict[str, Union[str, bool]], abstract_content: str):
         self.message = message
         self.args = args
         self.clean_args = clean_args
+        self.raw_keys = raw_keys
         self.keys = keys
         self.command_str = command_str
         self.abstract_content = abstract_content
@@ -290,21 +294,21 @@ class PrefixContextGenerator(ContextGenerator):
         if not message.content.startswith(self.prefix):
             return None
 
-        args = message.content.split()
+        args: list = message.content.split()
         clean_args = message.clean_content.split()[1:]
         command = args.pop(0)[len(self.prefix):].lower()
 
-        keys = []
-        for arg in args:
-            if arg.startswith("--") and len(arg) > 2 and arg not in keys:
-                keys.append(arg)
+        raw_keys = []
+        keys = {}
+        for arg in list(args):
+            arg: str
+            matcher = key_regex.fullmatch(arg)
+            if matcher is not None:
+                keys[matcher.group(1)] = matcher.group(2) is None or matcher.group(2)
+                clean_args.remove(matcher.group(0))
+                args.remove(matcher.group(0))
 
-        for i, key in enumerate(keys):
-            args.remove(key)
-            clean_args.remove(key)
-            keys[i] = key[2:]
-
-        return CommandContext(message, command, args, clean_args, keys, message.content[len(self.prefix):])
+        return CommandContext(message, command, args, clean_args, raw_keys, keys, message.content[len(self.prefix):])
 
 
 class CommandResult:

@@ -20,7 +20,7 @@ class BaseModule(Module):
                 count = 0
 
                 for command in list(self.module.bot.command_handler.commands.values()):
-                    if command.perm_handler.has_permission(ctx.message.author) or "all" in ctx.keys:
+                    if command.perm_handler.has_permission(ctx.message.author) or "all" in ctx.raw_keys:
                         count += 1
 
                         embed.add_field(
