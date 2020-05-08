@@ -67,7 +67,7 @@ class StatsModule(Module):
                                          reverse=True)}
 
                     for i, k in enumerate(sorted_top):
-                        user = self.module.bot.get_user(k)
+                        user = await self.module.bot.fetch_user(k)
 
                         if i == 0 and user is not None:
                             top_user_avatar = user.avatar_url
@@ -88,7 +88,8 @@ class StatsModule(Module):
                                 value=commands_field, inline=False)
                 embed.add_field(name="**Топ пользователей по командам:**", value=users_field, inline=False)
 
-                embed.set_thumbnail(url=top_user_avatar)
+                if top_user_avatar is not None:
+                    embed.set_thumbnail(url=top_user_avatar)
 
                 await ctx.message.channel.send(embed=embed)
 
