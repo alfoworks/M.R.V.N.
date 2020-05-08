@@ -34,9 +34,11 @@ class KGBModule(Module):
 
         try:
             last_audit_action = await guild.audit_logs(limit=1, action=discord.AuditLogAction.message_delete,
-                                                       after=message.created_at - timedelta(seconds=1),
                                                        oldest_first=True).next()
         except discord.NoMoreItems:
+            return None
+
+        if last_audit_action.created_at < (message.created_at - timedelta(seconds=1)):
             return None
 
         if last_audit_action.extra.channel.id == message.channel.id:

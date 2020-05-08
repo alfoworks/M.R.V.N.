@@ -53,8 +53,13 @@ class StatsModule(Module):
 
                     for i, k in enumerate(sorted_top):
                         commands_field += "**%s.** `%s` - %s\n" % (i + 1, k, sorted_top[k])
+
+                        if i > 9:
+                            break
                 else:
                     commands_field = "Ещё неизвестно."
+
+                top_user_avatar = None
 
                 if len(stats["user_top"].values()):
                     sorted_top = {k: v for k, v in
@@ -63,9 +68,16 @@ class StatsModule(Module):
 
                     for i, k in enumerate(sorted_top):
                         user = self.module.bot.get_user(k)
+
+                        if i == 0 and user is not None:
+                            top_user_avatar = user.avatar_url
+
                         users_field += "**%s.** %s - %s\n" % (
-                            i + 1, sorted_top[k]["display_name"] if not user else user.mention,
+                            i + 1, sorted_top[k]["display_name"] + " (недоступен)" if not user else user.mention,
                             sorted_top[k]["commands_used"])
+
+                        if i > 9:
+                            break
                 else:
                     users_field = "Еще неизвестно."
 
@@ -76,7 +88,7 @@ class StatsModule(Module):
                                 value=commands_field, inline=False)
                 embed.add_field(name="**Топ пользователей по командам:**", value=users_field, inline=False)
 
-                embed.set_thumbnail(url=ctx.message.author.avatar_url)
+                embed.set_thumbnail(url=top_user_avatar)
 
                 await ctx.message.channel.send(embed=embed)
 
