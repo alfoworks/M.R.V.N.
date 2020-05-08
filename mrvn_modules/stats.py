@@ -98,6 +98,9 @@ class StatsModule(Module):
         @command_listener(self)
         class StatsCommandListener(CommandListener):
             async def on_command_execute(self, command: Command, result: CommandResult, ctx: CommandContext):
+                if ctx.message.channel.id = 394134985482960907:  # Если вы не знали - то лень выглядит именно так.
+                    return
+                
                 name = command.name
                 usver_id = str(ctx.message.author.id)
 
