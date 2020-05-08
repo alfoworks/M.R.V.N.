@@ -67,7 +67,7 @@ class StatsModule(Module):
                                          reverse=True)}
 
                     for i, k in enumerate(sorted_top):
-                        user = await self.module.bot.fetch_user(k)
+                        user = await self.module.bot.fetch_user(int(k))
 
                         if i == 0 and user is not None:
                             top_user_avatar = user.avatar_url
@@ -99,7 +99,7 @@ class StatsModule(Module):
         class StatsCommandListener(CommandListener):
             async def on_command_execute(self, command: Command, result: CommandResult, ctx: CommandContext):
                 name = command.name
-                usver_id = ctx.message.author.id
+                usver_id = str(ctx.message.author.id)
 
                 stats["command_top"][name] = 1 if name not in stats["command_top"] else stats["command_top"][name] + 1
 

@@ -33,8 +33,7 @@ class KGBModule(Module):
         guild: discord.Guild = message.guild
 
         try:
-            last_audit_action = await guild.audit_logs(limit=1, action=discord.AuditLogAction.message_delete,
-                                                       oldest_first=True).next()
+            last_audit_action = await guild.audit_logs(limit=1, action=discord.AuditLogAction.message_delete).next()
         except discord.NoMoreItems:
             return None
 
