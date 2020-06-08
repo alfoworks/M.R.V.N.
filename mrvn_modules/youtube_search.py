@@ -23,18 +23,12 @@ class YoutubeModule(Module):
                 html = response.read()
                 soup = BeautifulSoup(html, 'html.parser')
 
-                videos = []
-
                 for vid in soup.findAll(attrs={'class': 'yt-uix-tile-link'}):
                     vid_url = "https://www.youtube.com" + vid["href"]
 
                     if "channel" not in vid_url:
-                        videos.append(vid_url)
+                        await ctx.message.channel.send("Видео по запросу \"%s\": (запросил: %s)\n%s" % (keyword, ctx.message.author.mention, vid_url))
+                        return CommandResult.ok()
 
-                if len(videos) < 1:
-                    return CommandResult.error("Видео по этому запросу не найдено.")
 
-                await ctx.message.channel.send(
-                    "Видео по запросу \"%s\": (запросил: %s)\n%s" % (keyword, ctx.message.author.mention, videos[0]))
-
-                return CommandResult.ok()
+                return CommandResult.error("Видео по этому запросу не найдено.")
