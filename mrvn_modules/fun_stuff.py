@@ -7,6 +7,13 @@ from decorators import mrvn_module, mrvn_command
 from modular import *
 
 
+class ApiError(Exception):
+    text: str
+
+    def __init__(self, text):
+        self.text = text
+
+
 @mrvn_module("FunStuff", "Модуль, содержащий интересные, но бесполезные команды.")
 class FunStuffModule(Module):
     gay_react_words = ["галя", "гей", "gay", "galya", "cleveron", "клеверон"]
@@ -19,8 +26,9 @@ class FunStuffModule(Module):
         if FunStuffModule.translator_api_key is None:
             self.logger.error("Ключ Yandex Translator API не указан. Команда rtr не будет работать.")
 
-        @mrvn_command(self, "rtr", "Перевести текст на китайский и обратно, что сделает его очень странным.",
-                      "<текст>")
+        @mrvn_command(self, "rtr", "Перевести текст на рандомный или выбранный язык и обратно, что сделает его очень "
+                                   "странным.",
+                      "<текст>", keys_desc=["cmd=<имя команды>", "lang=<язык, 2 символа>"])
         class RtrCommand(Command):
             @staticmethod
             async def translate(text, lang):
@@ -28,17 +36,24 @@ class FunStuffModule(Module):
                     async with session.get(FunStuffModule.translator_url,
                                            params={"key": FunStuffModule.translator_api_key, "text": text,
                                                    "lang": lang}) as response:
-                        return " ".join((await response.json())["text"])
+                        json = await response.json()
 
-            async def trans_task(self, ctx):
+                        if json["code"] != 200:
+                            raise ApiError(json["message"])
+
+                        return " ".join(json["text"])
+
+            async def trans_task(self, ctx, text, lang):
                 try:
-                    retranslated = await self.translate(
-                        (await self.translate((await self.translate(" ".join(ctx.clean_args), "zh")), "ja")), "ru")
+                    retranslated = await self.translate((await self.translate(text, lang)), "ru")
                 except (asyncio.TimeoutError, aiohttp.ClientConnectionError):
                     await ctx.send_embed(EmbedType.ERROR, "Не удалось подключиться к серверу.")
                     return
+                except ApiError as error:
+                    await ctx.send_embed(EmbedType.ERROR, "Произошла ошибка API: %s" % error.text)
+                    return
 
-                await ctx.send_embed(EmbedType.INFO, retranslated, "Retranslate")
+                await ctx.send_embed(EmbedType.INFO, retranslated, "Retranslate (язык: %s)" % lang)
 
                 pass
 
@@ -47,10 +62,40 @@ class FunStuffModule(Module):
                     return CommandResult.error(
                         "Команда не работает, так как API ключ недоступен. Возможно, бот запущен не в продакшн-среде.")
 
-                if len(ctx.args) < 1:
+                text: str
+
+                if "cmd" in ctx.keys:
+                    command_name = ctx.keys["cmd"].lower()
+
+                    if command_name == self.name:
+                        return CommandResult.error("Так низя.")
+
+                    try:
+                        command = self.module.bot.command_handler.commands[command_name]
+                    except KeyError:
+                        return CommandResult.error("Команда не найдена.")
+
+                    # noinspection PyBroadException
+                    try:
+                        result = await command.execute(ctx)
+                    except Exception:
+                        return CommandResult.error("При выполнении команды произошла ошибка!")
+
+                    if not result.message:
+                        return CommandResult.error("Не удалось получить сообщение от команды.")
+
+                    text = result.message
+                elif len(ctx.args) > 0:
+                    text = " ".join(ctx.clean_args)
+                else:
                     return CommandResult.args_error()
 
-                await self.module.bot.module_handler.add_background_task(self.trans_task(ctx), self.module)
+                if "lang" in ctx.keys:
+                    lang = ctx.keys["lang"]
+                else:
+                    lang = random.choice(("ko", "zh", "ja", "uk", "el", "ru", "en"))
+
+                await self.module.bot.module_handler.add_background_task(self.trans_task(ctx, text, lang), self.module)
 
                 return CommandResult.ok(wait_emoji=True)
 
@@ -131,7 +176,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "joke", "Шутник 3000")
+        @mrvn_command(self, "joke", "Шутник 3000!")
         class CommandJoke(Command):
             phrases = ["ыыы ёпта бля", "писос", "вот это прикол", "короче", "иду я такой", "а он", "ахуеть можно",
                        "ваще",
