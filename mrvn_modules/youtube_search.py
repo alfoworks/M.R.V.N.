@@ -18,7 +18,7 @@ class YoutubeModule(Module):
 
                 keyword = " ".join(ctx.clean_args)
 
-                url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote(keyword)
+                url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(keyword)
                 response = urllib.request.urlopen(url)
                 html = response.read()
                 soup = BeautifulSoup(html, 'html.parser')
