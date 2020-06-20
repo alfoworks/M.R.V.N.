@@ -1,27 +1,59 @@
 import asyncio
 import os
 import random
+import time
+import urllib.parse
+import urllib.request
+from datetime import datetime
 
 import aiohttp
 import discord
+import requests
+import wikipedia as wikipedia
 from aiohttp import ClientTimeout
+from bs4 import BeautifulSoup
 
 from decorators import mrvn_module, mrvn_command
-from modular import Module, Command, CommandResult, CommandContext, EmbedType
+from modular import Module, Command, CommandContext, CommandResult, EmbedType
 
 
-@mrvn_module("ImageSearch", "Поиск изображений в Google с определением NSFW контента.")
-class ImageSearchModule(Module):
+@mrvn_module("Search", "Поиск информации на таких сайтах, как Wikipedia, GoogleImages и YouTube.")
+class SearchModule(Module):
     cx = None
     api_key = None
 
     async def on_enable(self):
-        ImageSearchModule.cx = os.environ.get("mrvn_image_search_cx")
-        ImageSearchModule.api_key = os.environ.get("mrvn_image_search_apikey")
+        SearchModule.cx = os.environ.get("mrvn_image_search_cx")
+        SearchModule.api_key = os.environ.get("mrvn_image_search_apikey")
 
-        if ImageSearchModule.cx is None or ImageSearchModule.api_key is None:
+        if SearchModule.cx is None or SearchModule.api_key is None:
             self.logger.error("[ImageSearch] CX и/или API ключ недоступны. Проверьте \"kaizen_image_search_cx\" и "
                               "\"kaizen_image_search_apikey\" в PATH.")
+
+        wikipedia.set_lang("ru")
+
+        @mrvn_command(self, "yt", "Поиск видео в YouTube.", "<поисковый запрос>")
+        class YTCommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(ctx.args) < 1:
+                    return CommandResult.args_error()
+
+                keyword = " ".join(ctx.clean_args)
+
+                url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(keyword)
+                response = urllib.request.urlopen(url)
+                html = response.read()
+                soup = BeautifulSoup(html, 'html.parser')
+
+                for vid in soup.findAll(attrs={'class': 'yt-uix-tile-link'}):
+                    vid_url = "https://www.youtube.com" + vid["href"]
+
+                    if "channel" not in vid_url:
+                        await ctx.message.channel.send("Видео по запросу \"%s\": (запросил: %s)\n%s" % (
+                            keyword, ctx.message.author.mention, vid_url))
+                        return CommandResult.ok()
+
+                return CommandResult.error("Видео по этому запросу не найдено.")
 
         @mrvn_command(self, "img", "Поиск изображений в Google.", "<поисковый запрос> [--index=<индекс 0 - 4>]")
         class ImgCommand(Command):
@@ -31,8 +63,8 @@ class ImageSearchModule(Module):
                     async with aiohttp.ClientSession(timeout=ClientTimeout(20)) as session:
                         async with session.get("https://www.googleapis.com/customsearch/v1",
                                                params={"q": keyword, "num": 5, "start": 1, "searchType": "image",
-                                                       "key": ImageSearchModule.api_key,
-                                                       "cx": ImageSearchModule.cx}) as response:
+                                                       "key": SearchModule.api_key,
+                                                       "cx": SearchModule.cx}) as response:
 
                             data = await response.json()
 
@@ -71,7 +103,7 @@ class ImageSearchModule(Module):
                     await ctx.send_embed(EmbedType.ERROR, "Не удалось подключиться к серверу.")
 
             async def execute(self, ctx: CommandContext) -> CommandResult:
-                if ImageSearchModule.cx is None or ImageSearchModule.api_key is None:
+                if SearchModule.cx is None or SearchModule.api_key is None:
                     return CommandResult.error(
                         "Команда не работает, так как API ключ и/или CX "
                         "недоступны. Возможно, бот запущен не в продакшн-среде.")
@@ -97,3 +129,37 @@ class ImageSearchModule(Module):
                     self.module)
 
                 return CommandResult.ok(wait_emoji=True)
+
+        @mrvn_command(self, "wiki", "Поиск информации в Wikipedia.", "<поисковый запрос>", should_await=False)
+        class WikiCommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(ctx.clean_args) < 1:
+                    return CommandResult.args_error()
+
+                query = " ".join(ctx.clean_args)
+
+                nf_the_search = wikipedia.search(query, results=1)
+
+                if len(nf_the_search) == 0:
+                    return CommandResult.error("По запросу \"%s\" ничего не найдено." % query)
+
+                title = nf_the_search[0]
+
+                while True:
+                    try:
+                        text = wikipedia.summary(title, sentences=4)
+                    except wikipedia.DisambiguationError as e:
+                        title = e.options[0]
+                    else:
+                        break
+
+                page = wikipedia.page(title)
+
+                embed: discord.Embed = ctx.get_embed(EmbedType.INFO, text, page.title)
+                if len(page.images) > 0:
+                    print(page.images)
+                    embed.set_image(url=page.images[0])
+
+                await ctx.message.channel.send(embed=embed)
+
+                return CommandResult.ok()
