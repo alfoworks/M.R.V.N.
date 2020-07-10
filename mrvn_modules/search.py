@@ -1,17 +1,15 @@
 import asyncio
+import json
 import os
 import random
-import time
 import urllib.parse
 import urllib.request
-from datetime import datetime
 
 import aiohttp
 import discord
 import requests
 import wikipedia as wikipedia
 from aiohttp import ClientTimeout
-from bs4 import BeautifulSoup
 
 from decorators import mrvn_module, mrvn_command
 from modular import Module, Command, CommandContext, CommandResult, EmbedType
@@ -34,12 +32,79 @@ class SearchModule(Module):
 
         @mrvn_command(self, "yt", "Поиск видео в YouTube.", "<поисковый запрос>")
         class YTCommand(Command):
+            class YoutubeSearch:
+                def __init__(self, search_terms: str, max_results=None):
+                    self.search_terms = search_terms
+                    self.max_results = max_results
+                    self.videos = self.search()
+
+                def search(self):
+                    encoded_search = urllib.parse.quote(self.search_terms)
+                    base_url = "https://youtube.com"
+                    url = f"{base_url}/results?search_query={encoded_search}"
+                    response = requests.get(url).text
+                    while 'window["ytInitialData"]' not in response:
+                        response = requests.get(url).text
+                    results = self.parse_html(response)
+                    if self.max_results is not None and len(results) > self.max_results:
+                        return results[: self.max_results]
+                    return results
+
+                def parse_html(self, response):
+                    results = []
+                    start = (
+                            response.index('window["ytInitialData"]')
+                            + len('window["ytInitialData"]')
+                            + 3
+                    )
+                    end = response.index("};", start) + 1
+                    json_str = response[start:end]
+                    data = json.loads(json_str)
+
+                    videos = data["contents"]["twoColumnSearchResultsRenderer"]["primaryContents"][
+                        "sectionListRenderer"
+                    ]["contents"][0]["itemSectionRenderer"]["contents"]
+
+                    for video in videos:
+                        res = {}
+                        if "videoRenderer" in video.keys():
+                            video_data = video["videoRenderer"]
+                            res["id"] = video_data["videoId"]
+                            res["thumbnails"] = [
+                                thumb["url"] for thumb in video_data["thumbnail"]["thumbnails"]
+                            ]
+                            res["title"] = video_data["title"]["runs"][0]["text"]
+                            res["channel"] = video_data["longBylineText"]["runs"][0]["text"]
+                            res["duration"] = video_data.get("lengthText", {}).get("simpleText", 0)
+                            res["views"] = video_data.get("viewCountText", {}).get("simpleText", 0)
+                            res["url_suffix"] = video_data["navigationEndpoint"]["commandMetadata"][
+                                "webCommandMetadata"
+                            ]["url"]
+                            results.append(res)
+                    return results
+
+                def to_dict(self):
+                    return self.videos
+
+                def to_json(self):
+                    return json.dumps({"videos": self.videos})
+
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.args) < 1:
                     return CommandResult.args_error()
 
                 keyword = " ".join(ctx.clean_args)
 
+                results = self.YoutubeSearch(keyword, max_results=1).to_dict()
+
+                if len(results) < 1:
+                    return CommandResult.error("Видео по этому запросу не найдено.")
+
+                await ctx.message.channel.send("Видео по запросу \"%s\": (запросил: %s)\n%s" % (
+                    keyword, ctx.message.author.mention, "https://youtube.com/" + results[0]["url_suffix"]))
+                return CommandResult.ok()
+
+                """
                 url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(keyword)
                 response = urllib.request.urlopen(url)
                 html = response.read()
@@ -54,6 +119,7 @@ class SearchModule(Module):
                         return CommandResult.ok()
 
                 return CommandResult.error("Видео по этому запросу не найдено.")
+                """
 
         @mrvn_command(self, "img", "Поиск изображений в Google.", "<поисковый запрос> [--index=<индекс 0 - 4>]")
         class ImgCommand(Command):
@@ -130,7 +196,7 @@ class SearchModule(Module):
 
                 return CommandResult.ok(wait_emoji=True)
 
-        @mrvn_command(self, "wiki", "Поиск информации в Wikipedia.", "<поисковый запрос>", should_await=False)
+        @mrvn_command(self, "wiki", "Поиск информации в Wikipedia.", "<поисковый запрос>")
         class WikiCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.clean_args) < 1:
@@ -157,7 +223,6 @@ class SearchModule(Module):
 
                 embed: discord.Embed = ctx.get_embed(EmbedType.INFO, text, page.title)
                 if len(page.images) > 0:
-                    print(page.images)
                     embed.set_image(url=page.images[0])
 
                 await ctx.message.channel.send(embed=embed)
