@@ -25,8 +25,8 @@ class SearchModule(Module):
         SearchModule.api_key = os.environ.get("mrvn_image_search_apikey")
 
         if SearchModule.cx is None or SearchModule.api_key is None:
-            self.logger.error("[ImageSearch] CX и/или API ключ недоступны. Проверьте \"kaizen_image_search_cx\" и "
-                              "\"kaizen_image_search_apikey\" в PATH.")
+            self.logger.error("[ImageSearch] CX и/или API ключ недоступны. Проверьте \"mrvn_image_search_cx\" и "
+                              "\"mrvn_image_search_apikey\" в PATH.")
 
         wikipedia.set_lang("ru")
 
