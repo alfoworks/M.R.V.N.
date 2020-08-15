@@ -213,6 +213,60 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Шутник 3000")
 
+        @mrvn_command(self, "beucode", "Компилятор текста в Свинокод и обратно. beu-перевод текста в свинокод "
+                                       "text - перевод свинокода в текст",
+                      "<текст или свинокод>", keys_desc=["cmd=<имя команды>", "mode=<beu or text>"])
+        class CommandBeucode(Command):
+            @staticmethod
+            def beu_to_bits(string):
+                bit_string = ''
+                for emoji in string:
+                    if emoji == '🐗':
+                        bit_string += '1'
+                    elif emoji == '🐷':
+                        bit_string += '0'
+                return bit_string
+
+            @staticmethod
+            def beu_from_bits(string):
+                beu_string = ''
+                for number in string:
+                    if number == '1':
+                        beu_string += ':boar:'
+                    elif number == '0':
+                        beu_string += ':pig:'
+                return beu_string
+
+            @staticmethod
+            def text_to_bits(text, encoding='utf-8', errors='surrogatepass'):
+                bits = bin(int.from_bytes(text.encode(encoding, errors), 'big'))[2:]
+                return bits.zfill(8 * ((len(bits) + 7) // 8))
+
+            @staticmethod
+            def text_from_bits(bits, encoding='utf-8', errors='surrogatepass'):
+                n = int(bits, 2)
+                return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode(encoding, errors) or '\0'
+
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+
+                beucode = ctx.clean_args
+                out = None
+
+                if not beucode:
+                    return CommandResult.error('ТУПОЙ ЕБЛАН! ТЫ НЕ ВВЕЛ ЗНАЧЕНИЕ!')
+
+                if 'mode' in ctx.keys:
+                    mode = ctx.keys['mode']
+                else:
+                    return CommandResult.error('ТУПОЙ ЕБЛАН! ТЫ НЕ УКАЗАЛ РЕЖИМ!')
+
+                if mode == 'text':
+                    out = self.text_from_bits(self.beu_to_bits(beucode[0]))
+                elif mode == 'beu':
+                    out = self.beu_from_bits(self.text_to_bits(beucode[0]))
+
+                return CommandResult.info(out, "Свинокод")
+
     async def on_event(self, event_name, *args, **kwargs):
         if event_name != "on_message":
             return
