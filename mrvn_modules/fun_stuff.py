@@ -212,6 +212,46 @@ class FunStuffModule(Module):
                     out += random.choice(self.phrases) + " "
 
                 return CommandResult.info(out, "Шутник 3000")
+            
+    @mrvn_command(self, "beucode", "Компилятор текста в Свинокод и обратно. beu-перевод текста в свинокод "
+                                       "text - перевод свинокода в текст",
+                      "<текст или свинокод>", keys_desc=["cmd=<имя команды>", "mode=<beu or text>"])
+        class CommandBeucode(Command):
+            @staticmethod
+            def beu_to_bits(string):
+                return string.replace('🐗', '1').replace('🐷', '0')
+
+            @staticmethod
+            def beu_from_bits(string):
+                return string.replace('1', '🐗').replace('0', '🐷')
+
+            @staticmethod
+            def text_to_bits(text, encoding='utf-8', errors='surrogatepass'):
+                bits = bin(int.from_bytes(text.encode(encoding, errors), 'big'))[2:]
+                return bits.zfill(8 * ((len(bits) + 7) // 8))
+
+            @staticmethod
+            def text_from_bits(bits, encoding='utf-8', errors='surrogatepass'):
+                n = int(bits, 2)
+                return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode(encoding, errors) or '\0'
+
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+
+                beucode = ctx.clean_args
+                out = None
+
+                if not beucode or not 'mode' in ctx.keys:
+                    return CommandResult.args_error()
+
+                if 'mode' in ctx.keys:
+                    mode = ctx.keys['mode']
+
+                if mode == 'text':
+                    out = self.text_from_bits(self.beu_to_bits(beucode[0]))
+                elif mode == 'beu':
+                    out = self.beu_from_bits(self.text_to_bits(beucode[0]))
+
+                return CommandResult.info(out, "Свинокод")
 
     async def on_event(self, event_name, *args, **kwargs):
         if event_name != "on_message":
