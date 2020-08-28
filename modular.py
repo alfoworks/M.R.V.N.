@@ -13,6 +13,7 @@ import discord
 
 key_regex = re.compile(r"--([^\s=]+)(?:=(\S+))?")
 
+
 class LanguageUtils:
     @staticmethod
     def pluralize(number: int, nom_sing: str, gen_sing: str, gen_pl: str) -> str:
@@ -403,7 +404,7 @@ class CommandListener:
         pass
 
     async def on_command_pre_execute(self, command: Command, ctx: CommandContext) -> bool:
-        pass
+        return True
 
 
 class CommandHandler:
@@ -473,7 +474,7 @@ class CommandHandler:
                 should_execute = True
 
                 for listener in list(self.command_listeners.values()):
-                    should_execute = await listener.on_command_pre_execute(command, context)
+                    should_execute = await listener.on_command_pre_execute(command, context) is True
 
                 if not should_execute:
                     return
