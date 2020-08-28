@@ -104,23 +104,6 @@ class SearchModule(Module):
                     keyword, ctx.message.author.mention, "https://youtube.com/" + results[0]["url_suffix"]))
                 return CommandResult.ok()
 
-                """
-                url = "https://www.youtube.com/results?search_query=" + urllib.parse.quote_plus(keyword)
-                response = urllib.request.urlopen(url)
-                html = response.read()
-                soup = BeautifulSoup(html, 'html.parser')
-
-                for vid in soup.findAll(attrs={'class': 'yt-uix-tile-link'}):
-                    vid_url = "https://www.youtube.com" + vid["href"]
-
-                    if "channel" not in vid_url:
-                        await ctx.message.channel.send("Видео по запросу \"%s\": (запросил: %s)\n%s" % (
-                            keyword, ctx.message.author.mention, vid_url))
-                        return CommandResult.ok()
-
-                return CommandResult.error("Видео по этому запросу не найдено.")
-                """
-
         @mrvn_command(self, "img", "Поиск изображений в Google.", "<поисковый запрос> [--index=<индекс 0 - 4>]")
         class ImgCommand(Command):
             @staticmethod
@@ -210,12 +193,14 @@ class SearchModule(Module):
                     return CommandResult.error("По запросу \"%s\" ничего не найдено." % query)
 
                 title = nf_the_search[0]
+                search_count = 0
 
                 while True:
                     try:
                         text = wikipedia.summary(title, sentences=4)
                     except wikipedia.DisambiguationError as e:
-                        title = e.options[0]
+                        title = e.options[search_count]
+                        search_count += 1
                     else:
                         break
 
