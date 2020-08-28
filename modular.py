@@ -402,6 +402,9 @@ class CommandListener:
     async def on_command_execute(self, command: Command, result: CommandResult, ctx: CommandContext):
         pass
 
+    async def on_command_pre_execute(self, command: Command, ctx: CommandContext) -> bool:
+        pass
+
 
 class CommandHandler:
     emojis = {
@@ -467,6 +470,14 @@ class CommandHandler:
                 result = CommandResult.error(random.choice(self.access_denied_messages), "Нет прав!")
                 emoji = self.emojis["access_denied"]
             else:
+                should_execute = True
+
+                for listener in list(self.command_listeners.values()):
+                    should_execute = await listener.on_command_pre_execute(command, context)
+
+                if not should_execute:
+                    return
+
                 if command.should_await:
                     try:
                         result = await command.execute(context)
