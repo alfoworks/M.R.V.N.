@@ -1,5 +1,5 @@
 import binascii
-
+import math
 import aiohttp
 import requests
 from PIL import Image
@@ -267,16 +267,19 @@ class FunStuffModule(Module):
                     with open('src_image_'+str(ctx.message.id)+'.png', 'wb') as f:
                         f.write(req.content)
                     try:
-                        img = Image.open("test1.png")
+                        img = Image.open('src_image_'+str(ctx.message.id)+'.png')
+
                     except (IOError, TypeError):
                         return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
                     img = img.convert('L')
-                    symbols = ['@','%','#','*','+','=','-',':','.',' ']
+                    symbols = ['██','██','▓▓','▓▓','▒▒','▒▒','░░','░░']
                     res = ""
+                    asp = math.sqrt((img.height * img.width)/500)
+                    img = img.resize((int(img.size[0]/asp), int(img.size[1]/asp)), Image.ANTIALIAS)
                     for i in range(img.height):
                         for j in range(img.width):
                             pixel = img.getpixel((j, i))
-                            res = res + '**' + symbols[int((pixel*9)/255)] + '**'
+                            res = res + symbols[int((pixel*7)/255)]
                         res = res + '\n'
                     os.remove('src_image_'+str(ctx.message.id)+'.png')
                     return CommandResult.info(res, "Изображение")
