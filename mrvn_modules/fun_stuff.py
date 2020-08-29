@@ -268,6 +268,7 @@ class FunStuffModule(Module):
                         f.write(req.content)
                     try:
                         img = Image.open('src_image_'+str(ctx.message.id)+'.png')
+
                     except (IOError, TypeError):
                         return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
                     img = img.convert('L')
