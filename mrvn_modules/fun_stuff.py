@@ -259,9 +259,16 @@ class FunStuffModule(Module):
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.message.attachments) != 0:
-                    req = requests.get(ctx.message.attachments[0], allow_redirects=True)
-                    open('src_image.png', 'wb').write(req.content)
-                    img = Image.open("test1.png")
+                    try:
+                        req = requests.get(ctx.message.attachments[0], allow_redirects=True)
+                    except RequestException:
+                        return CommandResult.error("Ошибка запроса!")
+                    with open('src_image.png_'+ctx.message.id, 'wb') as f:
+                        f.write(req.content)
+                    try:
+                        img = Image.open("test1.png")
+                    except IOError, TypeError:
+                        return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
                     img = img.convert('L')
                     symbols = ['@','%','#','*','+','=','-',':','.',' ']
                     res = ""
@@ -270,7 +277,7 @@ class FunStuffModule(Module):
                             pixel = img.getpixel((j, i))
                             res = res + '**' + symbols[int((pixel*9)/255)] + '**'
                         res = res + '\n'
-                    os.remove('src_image.png')
+                    os.remove('src_image.png'+ctx.message.id)
                     return CommandResult.info(res, "Изображение")
                 else:
                     return CommandResult.args_error()
