@@ -2,8 +2,10 @@ import binascii
 
 import aiohttp
 import requests
+import os
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
+from PIL import Image
 
 from decorators import mrvn_module, mrvn_command
 from modular import *
@@ -253,6 +255,33 @@ class FunStuffModule(Module):
                     return CommandResult.error("Ошибка преобразования текста.")
 
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
+        
+        @mrvn_command(self, "ita", "Преобразование картинки в ASCII.", "<изображение>")
+        class ITACommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(ctx.message.attachments) != 0:
+                    try:
+                        req = requests.get(ctx.message.attachments[0], allow_redirects=True)
+                    except RequestException:
+                        return CommandResult.error("Ошибка запроса!")
+                    with open('src_image_'+ctx.message.id+'.png', 'wb') as f:
+                        f.write(req.content)
+                    try:
+                        img = Image.open("test1.png")
+                    except IOError, TypeError:
+                        return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
+                    img = img.convert('L')
+                    symbols = ['@','%','#','*','+','=','-',':','.',' ']
+                    res = ""
+                    for i in range(img.height):
+                        for j in range(img.width):
+                            pixel = img.getpixel((j, i))
+                            res = res + '**' + symbols[int((pixel*9)/255)] + '**'
+                        res = res + '\n'
+                    os.remove('src_image_'+ctx.message.id+'.png')
+                    return CommandResult.info(res, "Изображение")
+                else:
+                    return CommandResult.args_error()
 
     async def on_event(self, event_name, *args, **kwargs):
         if event_name != "on_message":
