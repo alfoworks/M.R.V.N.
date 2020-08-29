@@ -1,3 +1,5 @@
+import binascii
+
 import aiohttp
 import requests
 import os
@@ -214,48 +216,47 @@ class FunStuffModule(Module):
                     out += random.choice(self.phrases) + " "
 
                 return CommandResult.info(out, "Шутник 3000")
-            
-    @mrvn_command(self, "beucode", "Компилятор текста в Свинокод и обратно. beu-перевод текста в свинокод "
-                                       "text - перевод свинокода в текст",
-                      "<текст или свинокод>", keys_desc=["cmd=<имя команды>", "mode=<beu or text>"])
+
+        @mrvn_command(self, "beucode",
+                      "Компилятор текста в Беукод и обратно. Команда автоматически преобразовывает Беукод в текст или "
+                      "текст в Беукод, в зависимости от того, что вы укажете.",
+                      "<текст или Беукод>")
         class CommandBeucode(Command):
             @staticmethod
-            def beu_to_bits(string):
-                return string.replace('🐗', '1').replace('🐷', '0')
+            def str_to_beucode(string: str):
+                bits = bin(int(binascii.hexlify(string.encode("utf-8", "surrogatepass")), 16))[2:]
+
+                return bits.zfill(8 * ((len(bits) + 7) // 8)).replace("0", "🐷").replace("1", "🐗")
 
             @staticmethod
-            def beu_from_bits(string):
-                return string.replace('1', '🐗').replace('0', '🐷')
+            def beucode_to_str(string: str):
+                bits = string.replace("🐷", "0").replace("🐗", "1")
 
-            @staticmethod
-            def text_to_bits(text, encoding='utf-8', errors='surrogatepass'):
-                bits = bin(int.from_bytes(text.encode(encoding, errors), 'big'))[2:]
-                return bits.zfill(8 * ((len(bits) + 7) // 8))
-
-            @staticmethod
-            def text_from_bits(bits, encoding='utf-8', errors='surrogatepass'):
                 n = int(bits, 2)
-                return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode(encoding, errors) or '\0'
+
+                return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode("utf-8", "surrogatepass") or '\0'
 
             async def execute(self, ctx: CommandContext) -> CommandResult:
-
-                beucode = ctx.clean_args
-                out = None
-
-                if not beucode or not 'mode' in ctx.keys:
+                if len(ctx.clean_args) < 1:
                     return CommandResult.args_error()
 
-                if 'mode' in ctx.keys:
-                    mode = ctx.keys['mode']
+                cmd_input = " ".join(ctx.clean_args)
 
-                if mode == 'text':
-                    out = self.text_from_bits(self.beu_to_bits(beucode[0]))
-                elif mode == 'beu':
-                    out = self.beu_from_bits(self.text_to_bits(beucode[0]))
+                beucode = re.findall(r"[🐗🐷]", cmd_input)
 
-                return CommandResult.info(out, "Свинокод")
-            
-    @mrvn_command(self, "ita", "Преобразование картинки в ASCII.", "<изображение>")
+                mode = len(beucode) > 0
+
+                try:
+                    if mode:
+                        out = self.beucode_to_str(cmd_input)
+                    else:
+                        out = self.str_to_beucode(cmd_input)
+                except (ValueError, UnicodeDecodeError):
+                    return CommandResult.error("Ошибка преобразования текста.")
+
+                return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
+        
+        @mrvn_command(self, "ita", "Преобразование картинки в ASCII.", "<изображение>")
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.message.attachments) != 0:

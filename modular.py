@@ -13,6 +13,7 @@ import discord
 
 key_regex = re.compile(r"--([^\s=]+)(?:=(\S+))?")
 
+
 class LanguageUtils:
     @staticmethod
     def pluralize(number: int, nom_sing: str, gen_sing: str, gen_pl: str) -> str:
@@ -402,6 +403,9 @@ class CommandListener:
     async def on_command_execute(self, command: Command, result: CommandResult, ctx: CommandContext):
         pass
 
+    async def on_command_pre_execute(self, command: Command, ctx: CommandContext) -> bool:
+        return True
+
 
 class CommandHandler:
     emojis = {
@@ -467,6 +471,14 @@ class CommandHandler:
                 result = CommandResult.error(random.choice(self.access_denied_messages), "Нет прав!")
                 emoji = self.emojis["access_denied"]
             else:
+                should_execute = True
+
+                for listener in list(self.command_listeners.values()):
+                    should_execute = await listener.on_command_pre_execute(command, context) is True and should_execute
+
+                if not should_execute:
+                    return
+
                 if command.should_await:
                     try:
                         result = await command.execute(context)
