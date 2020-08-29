@@ -1,5 +1,6 @@
 import aiohttp
 import requests
+import os
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
 from PIL import Image
