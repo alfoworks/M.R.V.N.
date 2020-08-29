@@ -474,7 +474,7 @@ class CommandHandler:
                 should_execute = True
 
                 for listener in list(self.command_listeners.values()):
-                    should_execute = await listener.on_command_pre_execute(command, context) is True
+                    should_execute = await listener.on_command_pre_execute(command, context) is True and should_execute
 
                 if not should_execute:
                     return
