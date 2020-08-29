@@ -261,7 +261,7 @@ class FunStuffModule(Module):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.message.attachments) != 0:
                     try:
-                        req = requests.get(ctx.message.attachments[0], allow_redirects=True)
+                        req = requests.get(ctx.message.attachments[0].url, allow_redirects=True)
                     except RequestException:
                         return CommandResult.error("Ошибка запроса!")
                     with open('src_image_'+ctx.message.id+'.png', 'wb') as f:
