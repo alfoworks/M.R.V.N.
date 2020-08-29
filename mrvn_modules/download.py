@@ -51,13 +51,13 @@ class DownloadModule(Module):
 
                 try:
                     response = self.parse_link(ctx.clean_args[0], ctx.clean_args[1] if len(ctx.clean_args) > 1 else "video")
-                except:
+                except ValueError:
                     return CommandResult.error("Указанная ссылка не работает.")
                 
 
                 try:
                     self.download_coub(response)
-                except:
+                except OSError:
                     return CommandResult.error("Ошибка скачивания коуба.")
 
 
