@@ -275,7 +275,7 @@ class FunStuffModule(Module):
                     img = img.convert('L')
                     symbols = ['░░', '░░', '▒▒', '▒▒', '▓▓', '▓▓', '██', '██']
                     res = ""
-                    asp = math.sqrt((img.height * img.width) / 500)
+                    asp = math.sqrt((img.height * img.width) / 1024)
                     img = img.resize((int(img.size[0] / asp), int(img.size[1] / asp)), Image.ANTIALIAS)
                     for i in range(img.height):
                         for j in range(img.width):
