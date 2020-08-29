@@ -2,10 +2,10 @@ import binascii
 
 import aiohttp
 import requests
-import os
+from PIL import Image
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
-from PIL import Image
+from requests import RequestException
 
 from decorators import mrvn_module, mrvn_command
 from modular import *
@@ -268,7 +268,7 @@ class FunStuffModule(Module):
                         f.write(req.content)
                     try:
                         img = Image.open("test1.png")
-                    except IOError, TypeError:
+                    except (IOError, TypeError):
                         return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
                     img = img.convert('L')
                     symbols = ['@','%','#','*','+','=','-',':','.',' ']
