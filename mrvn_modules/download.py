@@ -58,6 +58,8 @@ class DownloadModule(Module):
                 try:
                     self.download_coub(response)
                 except OSError:
+                    return CommandResult.error("Ошибка записи коуба.")
+                except requests.RequestException:
                     return CommandResult.error("Ошибка скачивания коуба.")
 
 
