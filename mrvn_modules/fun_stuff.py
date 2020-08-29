@@ -264,7 +264,7 @@ class FunStuffModule(Module):
                         req = requests.get(ctx.message.attachments[0], allow_redirects=True)
                     except RequestException:
                         return CommandResult.error("Ошибка запроса!")
-                    with open('src_image_'+ctx.message.id+'.png', 'wb') as f:
+                    with open('src_image_'+str(ctx.message.id)+'.png', 'wb') as f:
                         f.write(req.content)
                     try:
                         img = Image.open("test1.png")
@@ -278,7 +278,7 @@ class FunStuffModule(Module):
                             pixel = img.getpixel((j, i))
                             res = res + '**' + symbols[int((pixel*9)/255)] + '**'
                         res = res + '\n'
-                    os.remove('src_image_'+ctx.message.id+'.png')
+                    os.remove('src_image_'+str(ctx.message.id)+'.png')
                     return CommandResult.info(res, "Изображение")
                 else:
                     return CommandResult.args_error()
