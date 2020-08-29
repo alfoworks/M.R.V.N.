@@ -2,6 +2,7 @@ import aiohttp
 import requests
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
+from PIL import Image
 
 from decorators import mrvn_module, mrvn_command
 from modular import *
@@ -252,6 +253,26 @@ class FunStuffModule(Module):
                     out = self.beu_from_bits(self.text_to_bits(beucode[0]))
 
                 return CommandResult.info(out, "Свинокод")
+            
+    @mrvn_command(self, "ita", "Преобразование картинки в ASCII.", "<изображение>")
+        class ITACommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(ctx.message.attachments) != 0:
+                    req = requests.get(ctx.message.attachments[0], allow_redirects=True)
+                    open('src_image.png', 'wb').write(req.content)
+                    img = Image.open("test1.png")
+                    img = img.convert('L')
+                    symbols = ['@','%','#','*','+','=','-',':','.',' ']
+                    res = ""
+                    for i in range(img.height):
+                        for j in range(img.width):
+                            pixel = img.getpixel((j, i))
+                            res = res + '**' + symbols[int((pixel*9)/255)] + '**'
+                        res = res + '\n'
+                    os.remove('src_image.png')
+                    return CommandResult.info(res, "Изображение")
+                else:
+                    return CommandResult.args_error()
 
     async def on_event(self, event_name, *args, **kwargs):
         if event_name != "on_message":
