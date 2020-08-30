@@ -1,9 +1,12 @@
 import binascii
+import math
 
 import aiohttp
 import requests
+from PIL import Image, ImageEnhance
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
+from requests import RequestException
 
 from decorators import mrvn_module, mrvn_command
 from modular import *
@@ -253,6 +256,40 @@ class FunStuffModule(Module):
                     return CommandResult.error("Ошибка преобразования текста.")
 
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
+
+        @mrvn_command(self, "ita", "Преобразование картинки в ASCII.", "<изображение>")
+        class ITACommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(ctx.message.attachments) != 0:
+                    try:
+                        req = requests.get(ctx.message.attachments[0].url, allow_redirects=True)
+                    except RequestException:
+                        return CommandResult.error("Ошибка запроса!")
+                    with open('src_image_' + str(ctx.message.id) + '.png', 'wb') as f:
+                        f.write(req.content)
+                    try:
+                        img = Image.open('src_image_' + str(ctx.message.id) + '.png')
+
+                    except (IOError, TypeError):
+                        return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
+                    img = img.convert('L')
+                    img = ImageEnhance.Contrast(img).enhance(1.5)
+                    symbols = ['░░', '░░', '▒▒', '▒▒', '▓▓', '▓▓', '██', '██']
+                    res = ""
+                    asp = math.sqrt((img.height * img.width) / 750)
+                    img = img.resize((int(img.size[0] / asp), int(img.size[1] / asp)), Image.ANTIALIAS)
+                    for i in range(img.height):
+                        for j in range(img.width):
+                            pixel = img.getpixel((j, i))
+                            res = res + symbols[int((pixel * 7) / 255)]
+                        res = res + '\n'
+                        
+                    os.remove('src_image_'+str(ctx.message.id)+'.png')
+                    await ctx.message.channel.send("```%s```" % res)
+                    return CommandResult.ok()
+
+                else:
+                    return CommandResult.args_error()
 
     async def on_event(self, event_name, *args, **kwargs):
         if event_name != "on_message":

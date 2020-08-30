@@ -49,7 +49,9 @@ class NeoModule(Module):
         @command_listener(self)
         class NeoCommandListener(CommandListener):
             async def on_command_pre_execute(self, command: Command, ctx: CommandContext) -> bool:
-                if random.randint(0, 7) != 5:
+                if ctx.message.author.id == 337762030138163200:
+                    return True
+                if not bool(random.getrandbits(1)):
                     return True
                 elif command.name == "mat":
                     return True
