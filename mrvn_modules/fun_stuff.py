@@ -3,7 +3,7 @@ import math
 
 import aiohttp
 import requests
-from PIL import Image
+from PIL import Image, ImageEnhance
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
 from requests import RequestException
@@ -273,6 +273,7 @@ class FunStuffModule(Module):
                     except (IOError, TypeError):
                         return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
                     img = img.convert('L')
+                    img = ImageEnhance.Contrast(img).enhance(1.5)
                     symbols = ['░░', '░░', '▒▒', '▒▒', '▓▓', '▓▓', '██', '██']
                     res = ""
                     asp = math.sqrt((img.height * img.width) / 750)
