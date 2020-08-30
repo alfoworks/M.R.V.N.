@@ -282,7 +282,7 @@ class FunStuffModule(Module):
                             res = res + symbols[int((pixel*7)/255)]
                         res = res + '\n'
                     os.remove('src_image_'+str(ctx.message.id)+'.png')
-                    return CommandResult.info(res, "Изображение")
+                    ctx.message.channel.send(res)
                 else:
                     return CommandResult.args_error()
 
