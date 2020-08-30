@@ -130,17 +130,17 @@ class DownloadModule(Module):
                 try:
                     response = self.download_tube(ctx.clean_args[0], ctx.clean_args[1] if len(ctx.clean_args) > 1 else "video")
                 except FileTooLarge as e:
-                    return CommandResult(e)
+                    return CommandResult.error(e)
                 except pytube.exceptions.LiveStreamError:
-                    return CommandResult("Вы отправили ссылку на прямой эфир.")
+                    return CommandResult.error("Вы отправили ссылку на прямой эфир.")
                 except pytube.exceptions.ExtractError:
-                    return CommandResult("Не удалось скачать видео/аудио.")
+                    return CommandResult.error("Не удалось скачать видео/аудио.")
                 except pytube.exceptions.HTMLParseError:
-                    return CommandResult("Не удалось проанализировать ссылку. Вероятно вы отправили ссылку не на ютуб")
+                    return CommandResult.error("Не удалось проанализировать ссылку. Вероятно вы отправили ссылку не на ютуб")
                 except pytube.exceptions.PytubeError:
-                    return CommandResult("Неизвестная ошибка API.")
+                    return CommandResult.error("Неизвестная ошибка API.")
                 except pytube.exceptions.VideoUnavailable:
-                    return CommandResult("Данное видео недоступно. Вероятно вы отправили ссылку на заблокированное или приватное видео.")
+                    return CommandResult.error("Данное видео недоступно. Вероятно вы отправили ссылку на заблокированное или приватное видео.")
 
                 await ctx.message.channel.send(
                                             "Видео успешно преобразовано.\n{}\n(Заказал: {})".format(response["title"], ctx.message.author.mention), 
