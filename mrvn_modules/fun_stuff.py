@@ -258,7 +258,7 @@ class FunStuffModule(Module):
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
         @mrvn_command(self, "ita", "Преобразование картинки в ASCII-арт.", "<изображение>",
-                      ["size=<1 - 750> - размер арта. 750 по умолчанию."])
+                      ["size=<15 - 1000> - размер арта. 750 по умолчанию."])
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.message.attachments) != 0:
@@ -278,7 +278,7 @@ class FunStuffModule(Module):
 
                     if "size" in ctx.keys:
                         try:
-                            size = max(min(750, int(ctx.keys["size"])), 1)
+                            size = max(min(1000, int(ctx.keys["size"])), 15)
                         except ValueError:
                             return CommandResult.args_error("Укажите число.")
 
@@ -315,4 +315,5 @@ class FunStuffModule(Module):
         elif event_name == "on_reaction_add":
             reaction: discord.Reaction = args[0]
 
-            await reaction.message.add_reaction(reaction)
+            if reaction.count > 2:
+                await reaction.message.add_reaction(reaction)
