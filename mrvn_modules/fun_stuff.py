@@ -282,8 +282,11 @@ class FunStuffModule(Module):
                             pixel = img.getpixel((j, i))
                             res = res + symbols[int((pixel * 7) / 255)]
                         res = res + '\n'
-                    os.remove('src_image_' + str(ctx.message.id) + '.png')
-                    return CommandResult.info("```\n%s```" % res, "Изображение")
+                        
+                    os.remove('src_image_'+str(ctx.message.id)+'.png')
+                    await ctx.message.channel.send("```%s```" % res)
+                    return CommandResult.ok()
+
                 else:
                     return CommandResult.args_error()
 
