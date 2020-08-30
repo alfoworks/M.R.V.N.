@@ -273,7 +273,7 @@ class FunStuffModule(Module):
                     except (IOError, TypeError):
                         return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
                     img = img.convert('L')
-                    img = ImageEnhance.Contrast(img).enhance(3)
+                    img = ImageEnhance.Contrast(img).enhance(1.5)
                     symbols = ['░░', '░░', '▒▒', '▒▒', '▓▓', '▓▓', '██', '██']
                     res = ""
                     asp = math.sqrt((img.height * img.width) / 750)
