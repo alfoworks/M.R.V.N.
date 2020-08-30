@@ -84,11 +84,6 @@ class DownloadModule(Module):
                 
                 DownloadModule.delete_file(response["type"])
 
-                try:
-                    await ctx.message.delete()
-                except discord.NotFound:
-                    pass
-
                 return CommandResult.ok()
 
         @mrvn_command(
@@ -152,10 +147,5 @@ class DownloadModule(Module):
                                             file = discord.File("file." + response["type"]))
                 
                 DownloadModule.delete_file(response["type"])
-                
-                try:
-                    await ctx.message.delete()
-                except discord.NotFound:
-                    pass
 
                 return CommandResult.ok()
