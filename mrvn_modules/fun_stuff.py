@@ -3,7 +3,7 @@ import math
 
 import aiohttp
 import requests
-from PIL import Image
+from PIL import Image, ImageEnhance
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
 from requests import RequestException
@@ -273,17 +273,21 @@ class FunStuffModule(Module):
                     except (IOError, TypeError):
                         return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
                     img = img.convert('L')
+                    img = ImageEnhance.Contrast(img).enhance(1.5)
                     symbols = ['░░', '░░', '▒▒', '▒▒', '▓▓', '▓▓', '██', '██']
                     res = ""
-                    asp = math.sqrt((img.height * img.width) / 500)
+                    asp = math.sqrt((img.height * img.width) / 750)
                     img = img.resize((int(img.size[0] / asp), int(img.size[1] / asp)), Image.ANTIALIAS)
                     for i in range(img.height):
                         for j in range(img.width):
                             pixel = img.getpixel((j, i))
                             res = res + symbols[int((pixel * 7) / 255)]
                         res = res + '\n'
-                    os.remove('src_image_' + str(ctx.message.id) + '.png')
-                    return CommandResult.info("```\n%s```" % res, "Изображение")
+                        
+                    os.remove('src_image_'+str(ctx.message.id)+'.png')
+                    await ctx.message.channel.send("```%s```" % res)
+                    return CommandResult.ok()
+
                 else:
                     return CommandResult.args_error()
 
