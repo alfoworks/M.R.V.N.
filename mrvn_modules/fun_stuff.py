@@ -283,7 +283,7 @@ class FunStuffModule(Module):
                         res = res + '\n'
                     os.remove('src_image_'+str(ctx.message.id)+'.png')
                     await ctx.message.channel.send(res)
-                    CommandResult.ok()
+                    return CommandResult.ok()
                 else:
                     return CommandResult.args_error()
 
