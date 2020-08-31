@@ -31,6 +31,8 @@ class FunStuffModule(Module):
         if FunStuffModule.translator_api_key is None:
             self.logger.error("Ключ Yandex Translator API не указан. Команда rtr не будет работать.")
 
+        self.bot.module_handler.add_param("fun_stuff_ita_allowed_channel", 0)
+
         @mrvn_command(self, "rtr", "Перевести текст на рандомный или выбранный язык и обратно, что сделает его очень "
                                    "странным.",
                       "<текст>", keys_desc=["cmd=<имя команды>", "lang=<язык, 2 символа>"])
@@ -261,6 +263,15 @@ class FunStuffModule(Module):
                       ["size=<15 - 1000> - размер арта. 750 по умолчанию."])
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
+                allowed_channel_id = self.module.bot.module_handler.get_param("fun_stuff_ita_allowed_channel")
+
+                if allowed_channel_id != 0:
+                    allowed_channel = ctx.message.guild.get_channel(allowed_channel_id)
+
+                    if allowed_channel and allowed_channel != ctx.message.channel:
+                        return CommandResult.error(
+                            "Вы можете выполнить эту команду только в %s" % allowed_channel.mention)
+
                 if len(ctx.message.attachments) != 0:
                     try:
                         req = requests.get(ctx.message.attachments[0].url, allow_redirects=True)
