@@ -31,6 +31,8 @@ class FunStuffModule(Module):
         if FunStuffModule.translator_api_key is None:
             self.logger.error("Ключ Yandex Translator API не указан. Команда rtr не будет работать.")
 
+        self.bot.module_handler.add_param("fun_stuff_ita_allowed_channel", 0)
+
         @mrvn_command(self, "rtr", "Перевести текст на рандомный или выбранный язык и обратно, что сделает его очень "
                                    "странным.",
                       "<текст>", keys_desc=["cmd=<имя команды>", "lang=<язык, 2 символа>"])
@@ -235,7 +237,7 @@ class FunStuffModule(Module):
 
                 n = int(bits, 2)
 
-                return n.to_bytes((n.bit_length() + 7) // 8, 'big').decode("utf-8", "surrogatepass") or '\0'
+                return n.to_bytes((n.bit_length() + 7) // 8, "big").decode("utf-8", "surrogatepass") or "\0"
 
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.clean_args) < 1:
@@ -257,46 +259,77 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
-        @mrvn_command(self, "ita", "Преобразование картинки в ASCII.", "<изображение>")
+        @mrvn_command(self, "ita", "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000, используются альтернативные символы.",
+                      "<изображение>",
+                      ["size=<15 - 1990> - размер арта. 750 по умолчанию."])
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
+                allowed_channel_id = self.module.bot.module_handler.get_param("fun_stuff_ita_allowed_channel")
+
+                if allowed_channel_id != 0:
+                    allowed_channel = ctx.message.guild.get_channel(allowed_channel_id)
+
+                    if allowed_channel and allowed_channel != ctx.message.channel:
+                        return CommandResult.error(
+                            "Вы можете выполнить эту команду только в %s" % allowed_channel.mention)
+
                 if len(ctx.message.attachments) != 0:
                     try:
                         req = requests.get(ctx.message.attachments[0].url, allow_redirects=True)
                     except RequestException:
-                        return CommandResult.error("Ошибка запроса!")
-                    with open('src_image_' + str(ctx.message.id) + '.png', 'wb') as f:
+                        return CommandResult.error("Не удалось загрузить изображение.")
+                    with open("src_image_%s.png" % ctx.message.id, "wb") as f:
                         f.write(req.content)
                     try:
-                        img = Image.open('src_image_' + str(ctx.message.id) + '.png')
+                        img = Image.open("src_image_" + str(ctx.message.id) + ".png")
 
                     except (IOError, TypeError):
-                        return CommandResult.error("Ошибка!", "Было прикреплено не изображение.")
-                    img = img.convert('L')
+                        return CommandResult.error("В этом файле не удалось прочитать сообщение.")
+
+                    size = 750
+
+                    if "size" in ctx.keys:
+                        try:
+                            size = max(min(1990, int(ctx.keys["size"])), 15)
+                        except ValueError:
+                            return CommandResult.args_error("Укажите число.")
+
+                    img = img.convert("L")
                     img = ImageEnhance.Contrast(img).enhance(1.5)
-                    symbols = ['░░', '░░', '▒▒', '▒▒', '▓▓', '▓▓', '██', '██']
+
+                    symbols = ["░░", "░░", "▒▒", "▒▒", "▓▓", "▓▓", "██", "██"]
+                    symbols_alt = ["░", "░", "▒", "▒", "▓", "▓", "█", "█"]
                     res = ""
-                    asp = math.sqrt((img.height * img.width) / 750)
+
+                    asp = math.sqrt((img.height * img.width) / size)
                     img = img.resize((int(img.size[0] / asp), int(img.size[1] / asp)), Image.ANTIALIAS)
+
                     for i in range(img.height):
                         for j in range(img.width):
                             pixel = img.getpixel((j, i))
-                            res = res + symbols[int((pixel * 7) / 255)]
-                        res = res + '\n'
-                        
-                    os.remove('src_image_'+str(ctx.message.id)+'.png')
+                            if size<=1000:
+                                res = res + symbols[int((pixel * 7) / 255)]
+                            else:
+                                res = res + symbols_alt[int((pixel * 7) / 255)]
+                        res = res + "\n"
+
+                    os.remove("src_image_%s.png" % ctx.message.id)
                     await ctx.message.channel.send("```%s```" % res)
+
                     return CommandResult.ok()
 
                 else:
                     return CommandResult.args_error()
 
     async def on_event(self, event_name, *args, **kwargs):
-        if event_name != "on_message":
-            return
+        if event_name == "on_message":
+            message: discord.Message = args[0]
 
-        message: discord.Message = args[0]
+            for word in self.gay_react_words:
+                if word in message.content.lower():
+                    await message.add_reaction("🏳️‍🌈")
+        elif event_name == "on_reaction_add":
+            reaction: discord.Reaction = args[0]
 
-        for word in self.gay_react_words:
-            if word in message.content.lower():
-                await message.add_reaction("🏳️‍🌈")
+            if reaction.count > 2:
+                await reaction.message.add_reaction(reaction)
