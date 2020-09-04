@@ -259,9 +259,11 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
+ 
         @mrvn_command(self, "ita", "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000, используются альтернативные символы.",
                       "<изображение>",
                       ["size=<15 - 1990> - размер арта. 750 по умолчанию."])
+
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 allowed_channel_id = self.module.bot.module_handler.get_param("fun_stuff_ita_allowed_channel")
@@ -299,6 +301,7 @@ class FunStuffModule(Module):
 
                     symbols = ["░░", "░░", "▒▒", "▒▒", "▓▓", "▓▓", "██", "██"]
                     symbols_alt = ["░", "░", "▒", "▒", "▓", "▓", "█", "█"]
+
                     res = ""
 
                     asp = math.sqrt((img.height * img.width) / size)
