@@ -259,8 +259,11 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
-        @mrvn_command(self, "ita", "Преобразование картинки в ASCII-арт.", "<изображение>",
-                      ["size=<15 - 1000> - размер арта. 750 по умолчанию."])
+ 
+        @mrvn_command(self, "ita", "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000, используются альтернативные символы.",
+                      "<изображение>",
+                      ["size=<15 - 1990> - размер арта. 750 по умолчанию."])
+
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 allowed_channel_id = self.module.bot.module_handler.get_param("fun_stuff_ita_allowed_channel")
@@ -289,7 +292,7 @@ class FunStuffModule(Module):
 
                     if "size" in ctx.keys:
                         try:
-                            size = max(min(1000, int(ctx.keys["size"])), 15)
+                            size = max(min(1990, int(ctx.keys["size"])), 15)
                         except ValueError:
                             return CommandResult.args_error("Укажите число.")
 
@@ -297,6 +300,8 @@ class FunStuffModule(Module):
                     img = ImageEnhance.Contrast(img).enhance(1.5)
 
                     symbols = ["░░", "░░", "▒▒", "▒▒", "▓▓", "▓▓", "██", "██"]
+                    symbols_alt = ["░", "░", "▒", "▒", "▓", "▓", "█", "█"]
+
                     res = ""
 
                     asp = math.sqrt((img.height * img.width) / size)
@@ -305,7 +310,10 @@ class FunStuffModule(Module):
                     for i in range(img.height):
                         for j in range(img.width):
                             pixel = img.getpixel((j, i))
-                            res = res + symbols[int((pixel * 7) / 255)]
+                            if size<=1000:
+                                res = res + symbols[int((pixel * 7) / 255)]
+                            else:
+                                res = res + symbols_alt[int((pixel * 7) / 255)]
                         res = res + "\n"
 
                     os.remove("src_image_%s.png" % ctx.message.id)
