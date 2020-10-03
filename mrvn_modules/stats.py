@@ -129,16 +129,8 @@ class StatsModule(Module):
                             last_comms += "%s\n\n" % k
                         embed.add_field(name="**Последние коммиты:**", value=last_comms, inline=False)
                     elif "type" in ctx.keys:
-                        if ctx.keys['type'] == "any":
-                            typecheck("any")
-                        elif ctx.keys['type'] == "style":
-                            typecheck("style")
-                        elif ctx.keys['type'] == "feature":
-                            typecheck("feature")
-                        elif ctx.keys['type'] == "fix":
-                            typecheck("fix")
-                        elif ctx.keys['type'] == "refactor":
-                            typecheck("refactor")
+                        if ctx.keys['type'] in ["any", "style", "feature", "fix", "refactor"]:
+                            typecheck(ctx.keys['type'])
                         else:
                             last_comms = ""
                             for k in comm_messages[0:5]:
