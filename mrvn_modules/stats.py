@@ -1,11 +1,13 @@
 import asyncio
 import json
 import os
+from github import Github
 
 import discord
 
 from decorators import mrvn_command, mrvn_module, command_listener
 from modular import Command, Module, CommandResult, CommandContext, EmbedType, CommandListener
+from mrvn_config import MrvnConfig
 
 stats = {
     "processed_commands": 0,
@@ -95,12 +97,65 @@ class StatsModule(Module):
 
                 return CommandResult.ok()
 
+        @mrvn_command(self, "gitcommits", "Показывает статистику по коммитам организации alfoworks.", "<repo>",
+                      ['type=<any/style/feature/fix/refactor>'])
+        class GitCommitsCommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(ctx.clean_args) < 1:
+                    return CommandResult.args_error()
+                g = Github(MrvnConfig.github_login, MrvnConfig.github_password)
+                if ctx.clean_args[0] in [n.full_name.split("/")[1] for n in g.get_organization("alfoworks").get_repos()]:
+                    comms = [i.commit for i in
+                             list(g.get_organization("alfoworks").get_repo(ctx.clean_args[0]).get_commits())]
+                    comm_messages = [l.message for l in comms]
+                    embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "",
+                                                         "Статистика коммитов по репозиторию %s" % ctx.clean_args[0])
+                    embed.add_field(name="**Всего коммитов обработано:**", value=len(comms), inline=False)
+
+                    def typecheck(comm_type):
+                        type_comms = []
+                        last_comms = ""
+                        for m in comm_messages:
+                            if "[" + comm_type.upper() + "]" in m:
+                                type_comms.append(m)
+                        for k in type_comms[0:5]:
+                            last_comms += "%s\n\n" % k
+                        embed.add_field(name="**Последние [" + comm_type.upper() + "] коммиты:**", value=last_comms,
+                                        inline=False)
+
+                    if "type" not in ctx.keys:
+                        last_comms = ""
+                        for k in comm_messages[0:5]:
+                            last_comms += "%s\n\n" % k
+                        embed.add_field(name="**Последние коммиты:**", value=last_comms, inline=False)
+                    elif "type" in ctx.keys:
+                        if ctx.keys['type'] == "any":
+                            typecheck("any")
+                        elif ctx.keys['type'] == "style":
+                            typecheck("style")
+                        elif ctx.keys['type'] == "feature":
+                            typecheck("feature")
+                        elif ctx.keys['type'] == "fix":
+                            typecheck("fix")
+                        elif ctx.keys['type'] == "refactor":
+                            typecheck("refactor")
+                        else:
+                            last_comms = ""
+                            for k in comm_messages[0:5]:
+                                last_comms += "%s\n\n" % k
+                            embed.add_field(name="**Последние коммиты:**", value=last_comms, inline=False)
+                    await ctx.message.channel.send(embed=embed)
+
+                    return CommandResult.ok()
+                else:
+                    return CommandResult.error("Репозитория %s не существует!" % ctx.clean_args[0])
+
         @command_listener(self)
         class StatsCommandListener(CommandListener):
             async def on_command_execute(self, command: Command, result: CommandResult, ctx: CommandContext):
                 if ctx.message.channel.id == 394134985482960907:  # Если вы не знали - то лень выглядит именно так.
                     return
-                
+
                 name = command.name
                 usver_id = str(ctx.message.author.id)
 
