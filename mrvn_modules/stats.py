@@ -7,7 +7,6 @@ import discord
 
 from decorators import mrvn_command, mrvn_module, command_listener
 from modular import Command, Module, CommandResult, CommandContext, EmbedType, CommandListener
-from mrvn_config import MrvnConfig
 
 stats = {
     "processed_commands": 0,
@@ -103,7 +102,9 @@ class StatsModule(Module):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.clean_args) < 1:
                     return CommandResult.args_error()
-                g = Github(MrvnConfig.github_login, MrvnConfig.github_password)
+                github_login = os.environ.get("mrvn_gitcommits_login")
+                github_pass = os.environ.get("mrvn_gitcommits_pass")
+                g = Github(github_login, github_pass)
                 if ctx.clean_args[0] in [n.full_name.split("/")[1] for n in g.get_organization("alfoworks").get_repos()]:
                     comms = [i.commit for i in
                              list(g.get_organization("alfoworks").get_repo(ctx.clean_args[0]).get_commits())]
