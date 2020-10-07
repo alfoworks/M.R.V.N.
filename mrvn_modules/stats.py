@@ -18,6 +18,7 @@ stats = {
 @mrvn_module("Stats", "Модуль для статистики по командам.")
 class StatsModule(Module):
     stats_file = "mrvn_stats.json"
+    github_token = None
 
     def write_data(self):
         with open(self.stats_file, "w") as f:
@@ -40,6 +41,11 @@ class StatsModule(Module):
 
         await self.bot.module_handler.add_background_task(self.stats_save_task(), self)
         self.logger.info("Запуск таск сохранения статистики...")
+
+        StatsModule.github_token = os.environ.get("mrvn_gitcommits_token")
+
+        if StatsModule.github_token is None:
+            self.logger.error("Github токен не указан.")
 
         @mrvn_command(self, "stats", "Показывает статистику бота.")
         class StatsCommand(Command):
@@ -102,43 +108,42 @@ class StatsModule(Module):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.clean_args) < 1:
                     return CommandResult.args_error()
-                github_login = os.environ.get("mrvn_gitcommits_login")
-                github_pass = os.environ.get("mrvn_gitcommits_pass")
-                g = Github(github_login, github_pass)
-                if ctx.clean_args[0] in [n.full_name.split("/")[1] for n in g.get_organization("alfoworks").get_repos()]:
-                    comms = [i.commit for i in
-                             list(g.get_organization("alfoworks").get_repo(ctx.clean_args[0]).get_commits())]
-                    comm_messages = [l.message for l in comms]
+
+                if StatsModule.github_token is None:
+                    return CommandResult.error("Команда не работает, т.к. не указан Github токен.")
+
+                g = Github(StatsModule.github_token)
+
+                if ctx.clean_args[0] in [n.full_name.split("/")[1] for n in
+                                         g.get_repos()]:
+                    commits = ["%s - ***%s***" % (x.message, x.committer.name) for x in [i.commit for i in
+                                                   list(g.get_repo(
+                                                       ctx.clean_args[0]).get_commits())]]
+
                     embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "",
                                                          "Статистика коммитов по репозиторию %s" % ctx.clean_args[0])
-                    embed.add_field(name="**Всего коммитов обработано:**", value=len(comms), inline=False)
+                    embed.add_field(name="**Всего коммитов:**", value=str(len(commits)), inline=False)
 
-                    def typecheck(comm_type):
-                        type_comms = []
-                        last_comms = ""
-                        for m in comm_messages:
-                            if "[" + comm_type.upper() + "]" in m:
-                                type_comms.append(m)
-                        for k in type_comms[0:5]:
-                            last_comms += "%s\n\n" % k
-                        embed.add_field(name="**Последние [" + comm_type.upper() + "] коммиты:**", value=last_comms,
-                                        inline=False)
+                    if "type" in ctx.keys:
+                        comm_type = ctx.keys['type'].lower()
+                        comm_query = "[%s]" % comm_type.lower()
 
-                    if "type" not in ctx.keys:
-                        last_comms = ""
-                        for k in comm_messages[0:5]:
-                            last_comms += "%s\n\n" % k
-                        embed.add_field(name="**Последние коммиты:**", value=last_comms, inline=False)
-                    elif "type" in ctx.keys:
-                        if ctx.keys['type'].lower() in ["any", "style", "feature", "fix", "refactor"]:
-                            typecheck(ctx.keys['type'])
+                        if comm_type in ["any", "style", "feature", "fix", "refactor"]:
+                            commits = list(filter(lambda x: comm_query in x.lower(), commits))
+
+                            if len(commits) == 0:
+                                return CommandResult.error("Не удалось найти коммиты с таким типом.")
                         else:
-                            last_comms = ""
-                            for k in comm_messages[0:5]:
-                                last_comms += "%s\n\n" % k
-                            embed.add_field(name="**Последние коммиты:**", value=last_comms, inline=False)
-                    await ctx.message.channel.send(embed=embed)
+                            return CommandResult.args_error("Неверный тип коммита!")
 
+                        message = "**Последние коммиты с типом \"%s\":**" % comm_type.upper()
+                    else:
+                        message = "**Последние коммиты:**"
+
+                    embed.add_field(name=message, value="\n\n".join(commits[0:5]),
+                                    inline=False)
+
+                    await ctx.message.channel.send(embed=embed)
                     return CommandResult.ok()
                 else:
                     return CommandResult.error("Репозитория %s не существует!" % ctx.clean_args[0])
@@ -146,9 +151,6 @@ class StatsModule(Module):
         @command_listener(self)
         class StatsCommandListener(CommandListener):
             async def on_command_execute(self, command: Command, result: CommandResult, ctx: CommandContext):
-                if ctx.message.channel.id == 394134985482960907:  # Если вы не знали - то лень выглядит именно так.
-                    return
-
                 name = command.name
                 usver_id = str(ctx.message.author.id)
 
