@@ -116,7 +116,7 @@ class StatsModule(Module):
 
                 if ctx.clean_args[0] in [n.full_name.split("/")[1] for n in
                                          g.get_organization("alfoworks").get_repos()]:
-                    commits = [x.message for x in [i.commit for i in
+                    commits = ["%s - ***%s***" % (x.message, x.committer.name) for x in [i.commit for i in
                                                    list(g.get_organization("alfoworks").get_repo(
                                                        ctx.clean_args[0]).get_commits())]]
 
