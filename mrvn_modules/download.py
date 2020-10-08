@@ -19,7 +19,7 @@ class FileTooLarge(Exception):
 
 
 @mrvn_module(
-    "download",
+    "Download",
     "Модуль для скачивания и отправки видео и аудио файлов с разых ресурсов")
 class DownloadModule(Module):
 
@@ -40,19 +40,20 @@ class DownloadModule(Module):
         @mrvn_command(
             self,
             "coub",
-            "Команда для парсинга ссылки на коуб для просмотра(или прослушки) его в дискорде.",
-            "<Ссылка на коуб> <Video/Music>(стандартно Video)")
+            "Команда для парсинга ссылки на Coub для просмотра (или прослушки) его в Discord.",
+            "<ссылка> [video/music] (video по умолчанию)")
         class CoubCommand(Command):
             @staticmethod
-            def parse_link_coub(link, type="video"):
+            def parse_link_coub(link, download_type="video"):
                 link = "http://coub.com//api/v2/coubs" + link[21:]
                 response = {}
                 r = requests.get(link)
                 s = r.json()
                 response["title"] = s["title"]
-                response["content"] = s["file_versions"]["html5"]["audio"]["high"]["url"] if type == "music" else \
+                response["content"] = s["file_versions"]["html5"]["audio"]["high"][
+                    "url"] if download_type == "music" else \
                     s["file_versions"]["share"]["default"]
-                response["type"] = "mp3" if type == "music" else "mp4"
+                response["type"] = "mp3" if download_type == "music" else "mp4"
                 return response
 
             @staticmethod
@@ -64,7 +65,7 @@ class DownloadModule(Module):
                 if len(ctx.args) < 1:
                     return CommandResult.args_error()
                 elif len(ctx.args) > 1:
-                    if ctx.clean_args[1] != "video" and ctx.clean_args[1] != "music":
+                    if ctx.clean_args[1].lower() not in ["video", "music"]:
                         return CommandResult.error("Второй аргумент должен быть <video> или <music>")
 
                 try:
@@ -94,17 +95,17 @@ class DownloadModule(Module):
         @mrvn_command(
             self,
             "tube",
-            "Команда для парсинга ссылки на ютуб для просмотра(или прослушки) его в дискорде.",
-            "<Ссылка на видео с ютуб> <Video/Music>(стандартно Video)")
+            "Команда для парсинга ссылки на YouTube для просмотра (или прослушки) его в Discord.",
+            "<ссылка> [video/music] (video по умолчанию)")
         class TubeCommand(Command):
 
             @staticmethod
-            def download_tube(link, type="video"):
+            def download_tube(link, download_type="video"):
                 yt = YouTube(link)
                 response = {}
                 streams = yt.streams.filter(
-                    only_audio=False if type == "video" else True,
-                    file_extension="mp4" if type == "video" else "webm").order_by("audio_codec").order_by(
+                    only_audio=False if download_type == "video" else True,
+                    file_extension="mp4" if download_type == "video" else "webm").order_by("audio_codec").order_by(
                     "filesize").desc()
 
                 for i in streams:
@@ -113,8 +114,8 @@ class DownloadModule(Module):
                     else:
                         i.download(filename="file")
                         response["title"] = i.title
-                        response["type"] = "mp4" if type == "video" else "webm"
-                        if type == "music":
+                        response["type"] = "mp4" if download_type == "video" else "webm"
+                        if download_type == "music":
                             response = DownloadModule.convert_file(response)
                         return response
 
@@ -126,7 +127,7 @@ class DownloadModule(Module):
                 if len(ctx.args) < 1:
                     return CommandResult.args_error()
                 elif len(ctx.args) > 1:
-                    if ctx.clean_args[1] != "video" and ctx.clean_args[1] != "music":
+                    if ctx.clean_args[1] not in ["video", "music"]:
                         return CommandResult.error("Второй аргумент должен быть <video> или <music>")
 
                 try:
