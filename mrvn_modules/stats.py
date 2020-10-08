@@ -103,7 +103,7 @@ class StatsModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "gitcommits", "Показывает статистику по коммитам организации alfoworks.", "<repo>",
+        @mrvn_command(self, "gitcommits", "Показывает статистику по коммитам из GitHub.", "<repo>",
                       ['type=<any/style/feature/fix/refactor>'])
         class GitCommitsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
