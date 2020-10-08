@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from github import Github
+from github import UnknownObjectException
 
 import discord
 
@@ -114,8 +115,7 @@ class StatsModule(Module):
 
                 g = Github(StatsModule.github_token)
 
-                if ctx.clean_args[0] in [n.full_name.split("/")[1] for n in
-                                         g.get_repos()]:
+                try:
                     commits = ["%s - ***%s***" % (x.message, x.committer.name) for x in [i.commit for i in
                                                    list(g.get_repo(
                                                        ctx.clean_args[0]).get_commits())]]
@@ -145,7 +145,7 @@ class StatsModule(Module):
 
                     await ctx.message.channel.send(embed=embed)
                     return CommandResult.ok()
-                else:
+                except UnknownObjectException:
                     return CommandResult.error("Репозитория %s не существует!" % ctx.clean_args[0])
 
         @command_listener(self)
