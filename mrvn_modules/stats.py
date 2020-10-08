@@ -116,13 +116,13 @@ class StatsModule(Module):
                 g = Github(StatsModule.github_token)
 
                 try:
-                    commits = ["%s - ***%s***" % (x.message, x.committer.name) for x in [i.commit for i in
-                                                   list(g.get_repo(
-                                                       ctx.clean_args[0]).get_commits())]]
+                    commits = ["%s - ***%s***" % (x.message.split("\n\n")[0], x.committer.name) for x in [i.commit for i in
+                                                    list(g.get_repo(
+                                                        ctx.clean_args[0]).get_commits()[0:5])]]
 
                     embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "",
                                                          "Статистика коммитов по репозиторию %s" % ctx.clean_args[0])
-                    embed.add_field(name="**Всего коммитов:**", value=str(len(commits)), inline=False)
+                    embed.add_field(name="**Всего коммитов:**", value=str(g.get_repo(ctx.clean_args[0]).get_commits().totalCount), inline=False)
 
                     if "type" in ctx.keys:
                         comm_type = ctx.keys['type'].lower()
