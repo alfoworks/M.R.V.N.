@@ -117,26 +117,28 @@ class StatsModule(Module):
 
                 try:
                     commits = ["%s - ***%s***" % (x.message.split("\n\n")[0], x.committer.name) for x in [i.commit for i in
-                                                    list(g.get_repo(
-                                                        ctx.clean_args[0]).get_commits()[0:5])]]
+                                                    g.get_repo(
+                                                        ctx.clean_args[0]).get_commits()[0:5]]]
 
                     embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "",
                                                          "Статистика коммитов по репозиторию %s" % ctx.clean_args[0])
                     embed.add_field(name="**Всего коммитов:**", value=str(g.get_repo(ctx.clean_args[0]).get_commits().totalCount), inline=False)
 
-                    if "type" in ctx.keys:
-                        comm_type = ctx.keys['type'].lower()
-                        comm_query = "[%s]" % comm_type.lower()
+                    if "search-by" in ctx.keys:
+                        comm_msg = ctx.keys['search-by'].lower()
 
-                        if comm_type in ["any", "style", "feature", "fix", "refactor"]:
-                            commits = list(filter(lambda x: comm_query in x.lower(), commits))
+                        commits = []
+                        for commit in g.get_repo(ctx.clean_args[0]).get_commits():
+                            message = commit.commit.message.split("\n\n")[0]
+                            if comm_msg in message.lower():
+                                commits.append(message)
+                                if len(commits) == 5:
+                                    break
 
-                            if len(commits) == 0:
-                                return CommandResult.error("Не удалось найти коммиты с таким типом.")
-                        else:
-                            return CommandResult.args_error("Неверный тип коммита!")
+                        if len(commits) == 0:
+                            return CommandResult.error("Не удалось найти коммиты с таким сообщением.")
 
-                        message = "**Последние коммиты с типом \"%s\":**" % comm_type.upper()
+                        message = "**Последние коммиты с cообщением \"%s\":**" % comm_msg
                     else:
                         message = "**Последние коммиты:**"
 
