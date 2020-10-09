@@ -486,7 +486,7 @@ class CommandHandler:
                         result = CommandResult.error("У бота нет прав, чтобы совершить это действие!")
                     except Exception as e:
                         result = CommandResult.error(
-                            "Техническая информация/Stacktrace отправлены в консоль. Краткое описание: \n```Traceback (most recent call last):\n%s%s: %s```" % (traceback.format_stack(limit=10), type(e).__name__, e),
+                            "Техническая информация/Stacktrace: \n```Traceback (most recent call last):\n%s%s: %s```" % (traceback.format_stack(limit=10), type(e).__name__, e),
                             "⚠ Не удалось выполнить команду ⚠")
                         
 
