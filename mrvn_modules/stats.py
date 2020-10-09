@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import time
 from github import Github
 from github import UnknownObjectException
 
@@ -104,7 +105,7 @@ class StatsModule(Module):
                 return CommandResult.ok()
 
         @mrvn_command(self, "gitcommits", "Показывает статистику по коммитам из GitHub.", "<repo>",
-                      ['type=<any/style/feature/fix/refactor>'])
+                      ['search-by=<message>'])
         class GitCommitsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.clean_args) < 1:
@@ -128,8 +129,11 @@ class StatsModule(Module):
                         comm_msg = ctx.keys['search-by'].lower()
 
                         commits = []
+                        start_time = time_clock()
                         for commit in g.get_repo(ctx.clean_args[0]).get_commits():
                             message = commit.commit.message.split("\n\n")[0]
+                            if time.clock() - start_time > 3:
+                                break
                             if comm_msg in message.lower():
                                 commits.append(message)
                                 if len(commits) == 5:
