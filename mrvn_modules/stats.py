@@ -125,7 +125,7 @@ class StatsModule(Module):
                                                          "Статистика коммитов по репозиторию %s" % ctx.clean_args[0])
                     embed.add_field(name="**Всего коммитов:**", value=str(g.get_repo(ctx.clean_args[0]).get_commits().totalCount), inline=False)
 
-                    if "search-by" in ctx.keys:
+                    if "search-by" in ctx.keys and type(ctx.keys['search-by']).__name__ = 'string':
                         comm_msg = ctx.keys['search-by'].lower()
 
                         commits = []
