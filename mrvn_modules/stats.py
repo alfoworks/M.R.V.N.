@@ -129,7 +129,7 @@ class StatsModule(Module):
                         comm_msg = ctx.keys['search-by'].lower()
 
                         commits = []
-                        start_time = time_clock()
+                        start_time = time.clock()
                         for commit in g.get_repo(ctx.clean_args[0]).get_commits():
                             message = commit.commit.message.split("\n\n")[0]
                             if time.clock() - start_time > 3:
