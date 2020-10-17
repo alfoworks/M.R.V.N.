@@ -65,7 +65,7 @@ class TestModule(Module):
                 text = "Выберите реакцию в соответствии с ролью, которую хотите получить:\n\n"
                 for i, role in enumerate(roles):
                     role: Role
-                    text += "%s - %s\n" % (chr(0x1F1E6 + i), role.mention) # Сразу обьясняю что это за ад: это regional indicators в chr
+                    text += "%s - %s\n" % (chr(EMOJI_START + i), role.mention) # Сразу обьясняю что это за ад: это regional indicators в chr
                 text += "\n\nНажмите на реакцию внизу, что бы выбрать роль. Уберите свою реакцию, что бы убрать роль."
                 # Рисуем эмбед
                 # Здесь нельзя использовать CommandResult, поскольку после отправки сообщения нужно получить айди и выполнить другие действия
