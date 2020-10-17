@@ -1,15 +1,13 @@
 import json
+import os
 import re
-from typing import Union
 
 from discord import *
 from decorators import mrvn_module, mrvn_command
-from modular import Module, Command, CommandResult, CommandContext, ModuleHandler
+from modular import Module, Command, CommandResult, CommandContext
 
 regex = re.compile(r"<@&(\d+)>", re.MULTILINE)
 CACHE_FILE = "rolereaction_cache.json"
-ADD = "add"
-REMOVE = "remove"
 EMOJI_START = 0x1F1E6
 cache = {}
 
@@ -19,13 +17,34 @@ def save_cache():
         json.dump(cache, f)
 
 
-@mrvn_module("TestModule", "Тестовый модуль")
+@mrvn_module("RoleReaction", "RoleReaction  - автоматическая система установки ролей")
 class TestModule(Module):
 
     async def on_enable(self):
+        global cache
         self.logger.info("Модуль запущен!")
-        with open(CACHE_FILE) as f:
-            cache = json.load(f)
+        if os.path.exists(CACHE_FILE):
+            with open(CACHE_FILE) as f:
+                cache = json.load(f)
+        # Можно убрать в принципе, если забитый диск не мешает
+        for entry in cache:
+            entry: str
+            guild_id, channel_id, message_id = tuple(map(lambda x: int(x), entry.split("_")))
+            guild: Guild = self.bot.get_guild(guild_id)
+            if guild is None:
+                del cache[entry]
+                save_cache()
+                continue
+            channel: TextChannel = guild.get_channel(channel_id)
+            if channel is None:
+                del cache[entry]
+                save_cache()
+                continue
+            try:
+                await channel.fetch_message(message_id)
+            except NotFound:
+                del cache[entry]
+                save_cache()
         # noinspection PyUnusedLocal
         @mrvn_command(self, "rolereaction", "Создать сообщение, добавление реакции на которое выдаст роль", args_desc="<roles...>")
         class TestCommand(Command):
@@ -55,41 +74,37 @@ class TestModule(Module):
                 embed.description = text
                 del text
                 # Отправляем
-                msg: Message = ctx.message.channel.send(embed=embed)
+                msg: Message = await ctx.message.channel.send(embed=embed)
                 # Рисуем реакции
                 for i in range(len(roles)):
                     await msg.add_reaction(chr(EMOJI_START + i))
                 # Сохраняем данные
-                cache[msg.id] = list(map(lambda x: x.id, roles))
+                cache["%s_%s_%s" % (msg.guild.id, msg.channel.id, msg.id)] = list(map(lambda x: x.id, roles))
                 save_cache()
                 return CommandResult.ok()
 
     async def on_event(self, event_name, *args, **kwargs):
-        if event_name == "on_reaction_add":
-            reaction: Reaction = args[0]
-            user: Union[Member, User] = args[1]
-            action = ADD
-        elif event_name == "on_reaction_remove":
-            reaction: Reaction = args[0]
-            user: Union[Member, User] = args[1]
-            action = REMOVE
+        if event_name == "on_raw_reaction_add" or event_name == "on_raw_reaction_remove":
+            payload: RawReactionActionEvent = args[0]
         else:
             return
-        message: Message = reaction.message
-        if reaction.custom_emoji:
+        if payload.guild_id is None:
             return
-        if message.guild is None:
+        key = "%s_%s_%s" % (payload.guild_id, payload.channel_id, payload.message_id)
+        if key not in cache:
             return
-        if str(message.id) not in cache:
+        guild: Guild = self.bot.get_guild(payload.guild_id)
+        member: Member = guild.get_member(payload.user_id)
+        if payload.emoji.id is not None:
             return
-        roles = cache[message.id]
-        index = ord(reaction.emoji) - EMOJI_START
+        roles = cache[key]
+        index = ord(payload.emoji.name) - EMOJI_START
+        role = guild.get_role(roles[index])
         if index not in range(20):
-            await message.remove_reaction(reaction.emoji, user)
             return
-        if action == ADD:
-            await user.add_roles(roles[index], reason="RoleReaction automatic system")
-        elif action == REMOVE:
-            await user.remove_roles(roles[index], reason="RoleReaction automatic system")
+        if payload.event_type == "REACTION_ADD":
+            await member.add_roles(role, reason="RoleReaction automatic system")
+        elif payload.event_type == "REACTION_REMOVE":
+            await member.remove_roles(role, reason="RoleReaction automatic system")
 
 
