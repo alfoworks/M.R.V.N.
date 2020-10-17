@@ -484,9 +484,9 @@ class CommandHandler:
                         result = await command.execute(context)
                     except discord.Forbidden:
                         result = CommandResult.error("У бота нет прав, чтобы совершить это действие!")
-                    except Exception as e:
+                    except Exception:
                         result = CommandResult.error(
-                            "Техническая информация/Stacktrace: \n```Traceback (most recent call last):\n%s%s: %s```" % (traceback.format_stack(limit=10), type(e).__name__, e),
+                            "Техническая информация/Stacktrace: ```%s```" % traceback.format_exc(limit=10),
                             "⚠ Не удалось выполнить команду ⚠")
                         
 
