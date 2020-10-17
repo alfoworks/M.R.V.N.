@@ -88,20 +88,27 @@ class TestModule(Module):
             payload: RawReactionActionEvent = args[0]
         else:
             return
+        # Проверка на сообщение на сервере
         if payload.guild_id is None:
             return
         key = "%s_%s_%s" % (payload.guild_id, payload.channel_id, payload.message_id)
+        # Проверка на то, что это искомое сообщение, на которое нужно ставить роли
         if key not in cache:
             return
+        # Получение юзера
         guild: Guild = self.bot.get_guild(payload.guild_id)
         member: Member = guild.get_member(payload.user_id)
+        # Проверка, что роль не кастомная
         if payload.emoji.id is not None:
             return
         roles = cache[key]
         index = ord(payload.emoji.name) - EMOJI_START
-        role = guild.get_role(roles[index])
-        if index not in range(20):
+        # Проверка на индекс
+        if index not in range(len(roles)):
             return
+        # Получение роли
+        role = guild.get_role(roles[index])
+        # Установка
         if payload.event_type == "REACTION_ADD":
             await member.add_roles(role, reason="RoleReaction automatic system")
         elif payload.event_type == "REACTION_REMOVE":
