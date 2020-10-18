@@ -37,7 +37,7 @@ class LanguageUtils:
         return "%s %s" % (number, pluralized)
 
     @staticmethod
-    def formatted_duration(secs: int) -> str:
+    def formatted_duration(secs: int, format_to: int = 2) -> str:
         days = round(secs // 86400)
         hours = round((secs - days * 86400) // 3600)
         minutes = round((secs - days * 86400 - hours * 3600) // 60)
@@ -49,9 +49,9 @@ class LanguageUtils:
         seconds_text = LanguageUtils.pluralize(seconds, "секунда", "секунды", "секунд")
 
         formatted = ", ".join(filter(lambda x: bool(x), [days_text if days else "",
-                                                         hours_text if hours else "",
-                                                         minutes_text if minutes else "",
-                                                         seconds_text if seconds else ""]))
+                                                         hours_text if hours and format_to == 0 else "",
+                                                         minutes_text if minutes and format_to > 0 else "",
+                                                         seconds_text if seconds and format_to > 1 else ""]))
 
         return formatted
 

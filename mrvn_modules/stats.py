@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import json
 import os
 import time
@@ -118,9 +119,11 @@ class StatsModule(Module):
                 g = Github(StatsModule.github_token)
 
                 try:
-                    commits = ["%s - **%s** (*%s*)" % (x.message.split("\n\n")[0], x.committer.name, (
-                                LanguageUtils.formatted_duration(
-                                    int(time.time() - x.committer.date.timestamp())) + " назад"))
+                    time_now = datetime.datetime.utcnow()
+
+                    commits = ["%s - **%s** (*%s*)" % (x.message.split("\n\n")[0], x.author.name, (
+                            LanguageUtils.formatted_duration(
+                                int((time_now - x.committer.date).total_seconds()), 0) + " назад"))
                                for x in
                                [i.commit for i in
                                 g.get_repo(
