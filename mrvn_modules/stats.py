@@ -2,13 +2,14 @@ import asyncio
 import json
 import os
 import time
-from github import Github
+from github import Github, GithubObject
 from github import UnknownObjectException
+import github
 
 import discord
 
 from decorators import mrvn_command, mrvn_module, command_listener
-from modular import Command, Module, CommandResult, CommandContext, EmbedType, CommandListener
+from modular import Command, Module, CommandResult, CommandContext, EmbedType, CommandListener, LanguageUtils
 
 stats = {
     "processed_commands": 0,
@@ -105,7 +106,7 @@ class StatsModule(Module):
                 return CommandResult.ok()
 
         @mrvn_command(self, "gitcommits", "Показывает статистику по коммитам из GitHub.", "<repo>",
-                      ['search-by=<message>'])
+                      ["search-by=<message>"])
         class GitCommitsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.clean_args) < 1:
@@ -117,25 +118,35 @@ class StatsModule(Module):
                 g = Github(StatsModule.github_token)
 
                 try:
-                    commits = ["%s - ***%s***" % (x.message.split("\n\n")[0], x.committer.name) for x in [i.commit for i in
-                                                    g.get_repo(
-                                                        ctx.clean_args[0]).get_commits()[0:5]]]
+                    commits = ["%s - **%s** (*%s*)" % (x.message.split("\n\n")[0], x.committer.name, (
+                                LanguageUtils.formatted_duration(
+                                    int(time.time() - x.committer.date.timestamp())) + " назад"))
+                               for x in
+                               [i.commit for i in
+                                g.get_repo(
+                                    ctx.clean_args[0]).get_commits()[0:5]]]
 
                     embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "",
                                                          "Статистика коммитов по репозиторию %s" % ctx.clean_args[0])
-                    embed.add_field(name="**Всего коммитов:**", value=str(g.get_repo(ctx.clean_args[0]).get_commits().totalCount), inline=False)
+                    embed.add_field(name="**Всего коммитов:**",
+                                    value=str(g.get_repo(ctx.clean_args[0]).get_commits().totalCount),
+                                    inline=False)
 
                     if "search-by" in ctx.keys:
-                        comm_msg = ctx.keys['search-by'].lower()
+                        comm_msg = ctx.keys["search-by"].lower()
 
                         commits = []
-                        start_time = time.clock()
+                        start_time = time.time()
+
                         for commit in g.get_repo(ctx.clean_args[0]).get_commits():
                             message = commit.commit.message.split("\n\n")[0]
-                            if time.clock() - start_time > 3:
+
+                            if time.time() - start_time >= 3:
                                 break
+
                             if comm_msg in message.lower():
                                 commits.append(message)
+
                                 if len(commits) == 5:
                                     break
 
