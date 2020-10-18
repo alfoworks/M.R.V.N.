@@ -18,7 +18,6 @@ def save_cache():
 
 @mrvn_module("RoleReaction", "Автоматическая система установки ролей")
 class TestModule(Module):
-
     async def on_enable(self):
         global cache
 
@@ -29,24 +28,22 @@ class TestModule(Module):
                 cache = json.load(f)
 
         # Можно убрать в принципе, если забитый диск не мешает
-
         for entry in cache:
             entry: str
             guild_id, channel_id, message_id = tuple(map(lambda x: int(x), entry.split("_")))
-            cache_guild: f = self.bot.get_guild(guild_id)
 
+            cache_guild: f = self.bot.get_guild(guild_id)
             if cache_guild is None:
                 del cache[entry]
                 save_cache()
-
                 continue
-            channel: discord.TextChannel = cache_guild.get_channel(channel_id)
 
+            channel: discord.TextChannel = cache_guild.get_channel(channel_id)
             if channel is None:
                 del cache[entry]
                 save_cache()
-
                 continue
+
             try:
                 await channel.fetch_message(message_id)
             except discord.NotFound:
@@ -61,20 +58,17 @@ class TestModule(Module):
                 guild: discord.Guild = ctx.message.guild
 
                 # Проверяем количество
-                if len(ctx.message.role_mentions) == 0:
+                if not ctx.message.role_mentions:
                     return CommandResult.args_error("Вы не указали роли.")
                 elif len(ctx.message.role_mentions) > 20:
                     return CommandResult.args_error("Слишком много ролей.")
 
                 # Рисуем сообщение
                 text = "Выберите реакцию в соответствии с ролью, которую хотите получить:\n\n"
-
                 for i, role in enumerate(ctx.message.role_mentions):
                     role: discord.Role
-                    text += "%s - %s\n" % (
-                        chr(EMOJI_START + i),
-                        role.mention)  # Сразу обьясняю что это за ад: это regional indicators в chr
-
+                    # Сразу обьясняю что это за ад: это regional indicators в chr
+                    text += "%s - %s\n" % (chr(EMOJI_START + i), role.mention)
                 text += "\n\nНажмите на реакцию внизу, что бы выбрать роль. Уберите свою реакцию, что бы убрать роль."
 
                 # Рисуем эмбед
@@ -104,9 +98,8 @@ class TestModule(Module):
         if payload.guild_id is None:
             return
 
-        key = "%s_%s_%s" % (payload.guild_id, payload.channel_id, payload.message_id)
-
         # Проверка на то, что это искомое сообщение, на которое нужно ставить роли
+        key = "%s_%s_%s" % (payload.guild_id, payload.channel_id, payload.message_id)
         if key not in cache:
             return
 
@@ -118,10 +111,9 @@ class TestModule(Module):
         if payload.emoji.id is not None:
             return
 
+        # Проверка на индекс
         roles = cache[key]
         index = ord(payload.emoji.name) - EMOJI_START
-
-        # Проверка на индекс
         if index not in range(len(roles)):
             return
 
@@ -129,7 +121,6 @@ class TestModule(Module):
         role = guild.get_role(roles[index])
 
         # Установка
-
         if payload.event_type == "REACTION_ADD":
             await member.add_roles(role, reason="RoleReaction automatic system")
         elif payload.event_type == "REACTION_REMOVE":
