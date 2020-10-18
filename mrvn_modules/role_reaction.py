@@ -4,7 +4,7 @@ import os
 import discord
 
 from decorators import mrvn_module, mrvn_command
-from modular import Module, Command, CommandResult, CommandContext, EmbedType
+from modular import Module, Command, CommandResult, CommandContext, EmbedType, DiscordPermissionHandler
 
 CACHE_FILE = "rolereaction_cache.json"
 EMOJI_START = 0x1F1E6
@@ -17,7 +17,7 @@ def save_cache():
 
 
 @mrvn_module("RoleReaction", "Автоматическая система установки ролей")
-class TestModule(Module):
+class RoleReactionModule(Module):
     async def on_enable(self):
         global cache
 
@@ -52,7 +52,8 @@ class TestModule(Module):
 
         # noinspection PyUnusedLocal
         @mrvn_command(self, "rolereaction", "Создать сообщение, добавление реакции на которое выдаст роль",
-                      args_desc="<**упоминания** ролей до 20 шт.>")
+                      args_desc="<**упоминания** ролей до 20 шт.>",
+                      perm_handler=DiscordPermissionHandler(["administrator"]))
         class RoleReactionCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 guild: discord.Guild = ctx.message.guild
