@@ -141,7 +141,7 @@ class RoleReactionModule(Module):
                         msg = await channel.send(embed=embed)
                         # Проставляем эмодзи
                         for i in range(len(dossier[ROLES])):
-                            emoji = EMOJI_START + i
+                            emoji = chr(EMOJI_START + i)
                             await msg.add_reaction(emoji)
                         return CommandResult.info(
                             message="Поскольку сообщение было удалено, автоматически было создано новое.",
@@ -166,6 +166,8 @@ class RoleReactionModule(Module):
         if event_name == "on_raw_reaction_add" or event_name == "on_raw_reaction_remove":
             payload: discord.RawReactionActionEvent = args[0]
         else:
+            return
+        if payload.user_id == self.bot.user.id:
             return
         # Проверка на сообщение на сервере
         if payload.guild_id is None:
