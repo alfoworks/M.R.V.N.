@@ -1,6 +1,5 @@
 import json
 import os
-
 import discord
 
 from decorators import mrvn_module, mrvn_command
@@ -24,7 +23,6 @@ def save_cache():
 @mrvn_module("RoleReaction", "Автоматическая система установки ролей")
 class RoleReactionModule(Module):
 
-
     async def on_enable(self):
         global cache
 
@@ -35,7 +33,8 @@ class RoleReactionModule(Module):
                 cache = json.load(f)
 
         # noinspection PyUnusedLocal
-        @mrvn_command(self, name="rrm", desc="Управляйте сообщением, с помощью которого пользователи могут получать роли",
+        @mrvn_command(self, name="rrm",
+                      desc="Управляйте сообщением, с помощью которого пользователи могут получать роли",
                       args_desc="[create <канал>]/[remove <роли...>]/[add <роль> [описание]]")
         class RoleReactionManagerCommand(Command):
             @staticmethod
@@ -54,12 +53,14 @@ class RoleReactionModule(Module):
                     text += "Пока здесь нет ролей, что бы вы их выбрали. Зато здесь сидит Вампус."
                 # Рисуем эмбед
                 return ctx.get_embed(EmbedType.INFO, text, "RoleReaction")
+
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 # Проверки на аргументы
                 if len(ctx.args) == 0:
                     return CommandResult.args_error()
                 if ctx.args[0] not in ("create", "add", "remove"):
                     return CommandResult.args_error()
+                # Смотрим че хочет юзер
                 if ctx.args[0] == "create":
                     # Не заменять на try-except
                     # Почему? Юзеры скорее всего не будут указывать опциональный канал, а обработка исключения накладна
@@ -117,7 +118,9 @@ class RoleReactionModule(Module):
                         for i in range(len(dossier[ROLES])):
                             emoji = EMOJI_START + i
                             await msg.add_reaction(emoji)
-                        return CommandResult.info(message="Поскольку сообщение было удалено, автоматически было создано новое.", title="Произошла ошибка, которая была автоматически разрешена.")
+                        return CommandResult.info(
+                            message="Поскольку сообщение было удалено, автоматически было создано новое.",
+                            title="Произошла ошибка, которая была автоматически разрешена.")
                     else:
                         await msg.edit(embed=embed)
                         # Удаляем лишние реакции
@@ -134,7 +137,6 @@ class RoleReactionModule(Module):
                             if next(filter(lambda x: x.emoji == emoji, msg.reactions), None) is None:
                                 await msg.add_reaction(emoji)
                 return CommandResult.ok()
-
 
     async def on_event(self, event_name, *args, **kwargs):
         if event_name == "on_raw_reaction_add" or event_name == "on_raw_reaction_remove":
