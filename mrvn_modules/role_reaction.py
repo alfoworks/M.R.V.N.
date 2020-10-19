@@ -35,7 +35,7 @@ class RoleReactionModule(Module):
         # noinspection PyUnusedLocal
         @mrvn_command(self, name="rrm",
                       desc="Управляйте сообщением, с помощью которого пользователи могут получать роли",
-                      args_desc="[create <канал>]/[remove <роли...>]/[add <роль> [описание]]")
+                      args_desc="[create <канал>]/[remove <роли...>]/[add/rename <роль> [описание]]")
         class RoleReactionManagerCommand(Command):
             @staticmethod
             def create_embed(ctx) -> discord.Embed:
@@ -46,7 +46,14 @@ class RoleReactionModule(Module):
                     for i, role_obj in enumerate(dossier[ROLES]):
                         role: discord.Role = ctx.message.guild.get_role(role_obj[0])
                         # Сразу обьясняю что это за ад: это regional indicators в chr
-                        text += "%s - %s - %s\n" % (chr(EMOJI_START + i), role.mention, role_obj[1])
+                        if role:
+                            text += "%s - %s" % (chr(EMOJI_START + i), role.mention)
+                            if role_obj[1]:
+                                text += "- %s" % role_obj[1]
+                            text += "\n"
+                        else:
+                            text += "%s - %s\n" % (chr(EMOJI_START + i), role_obj[1])
+
                     text += "\n\nНажмите на реакцию внизу, что бы получить роль. Уберите свою реакцию, что бы убрать роль."
                 # А если нет, то показываем вампуса. Без пикчи, там хуйня со цветом.
                 else:
@@ -58,23 +65,24 @@ class RoleReactionModule(Module):
                 # Проверки на аргументы
                 if len(ctx.args) == 0:
                     return CommandResult.args_error()
-                if ctx.args[0] not in ("create", "add", "remove"):
+                if ctx.args[0] not in ("create", "add", "remove", "rename"):
                     return CommandResult.args_error()
                 # Смотрим че хочет юзер
                 if ctx.args[0] == "create":
                     # Не заменять на try-except
                     # Почему? Юзеры скорее всего не будут указывать опциональный канал, а обработка исключения накладна
                     channel = ctx.message.channel_mentions and ctx.message.channel_mentions[0] or ctx.message.channel
-                    embed = self.create_embed(ctx)
-                    msg: discord.Message = await channel.send(embed=embed)
                     # Создается структура сервера
                     cache[str(ctx.message.guild.id)] = {
                         CHANNEL_ID: channel.id,
-                        MESSAGE_ID: msg.id,
+                        MESSAGE_ID: 0,
                         ROLES: []
                     }
+                    embed = self.create_embed(ctx)
+                    msg: discord.Message = await channel.send(embed=embed)
+                    cache[str(ctx.message.guild.id)][MESSAGE_ID] = msg.id
                     save_cache()
-                if ctx.args[0] in ("add", "remove"):
+                if ctx.args[0] in ("add", "remove", "rename"):
                     # Проверки
                     try:
                         dossier = cache[str(ctx.message.guild.id)]
@@ -92,18 +100,35 @@ class RoleReactionModule(Module):
                                 if another_role_id == role.id:
                                     # Замена на UNDEFINED
                                     dossier[ROLES][i] = UNDEFINED_ROLE
-                        while dossier[ROLES][-1][0] == -1:
+                        while dossier[ROLES] and dossier[ROLES][-1][0] == -1:
                             del dossier[ROLES][-1]
                     elif ctx.args[0] == "add":
-                        # Позиция по умолчанию - в конце
-                        pos = len(dossier[ROLES])
+                        if next(filter(lambda x: x[0] == ctx.message.role_mentions[0].id, dossier[ROLES]), None):
+                            return CommandResult.error("Такая роль уже существует!")
+                        added = False
                         # Находим свободное место
                         for i, role_object in enumerate(dossier[ROLES]):
                             if role_object[0] == -1:
-                                pos = i
+                                # Выставляем роль и описание
+                                dossier[ROLES][i] = (ctx.message.role_mentions[0].id, " ".join(ctx.args[2:]))
+                                added = True
                                 break
-                        # Выставляем роль и описание
-                        dossier[ROLES][pos] = (ctx.message.role_mentions[0], " ".join(ctx.args[2:]))
+
+                        if not added:
+                            # Тут tuple. лишних скобок нет
+                            # Выставляем роль и описание
+                            dossier[ROLES].append(
+                                (ctx.message.role_mentions[0].id, " ".join(ctx.args[2:]))
+                            )
+                    elif ctx.args[0] == "rename":
+                        if next(filter(lambda x: x[0] == ctx.message.role_mentions[0].id, dossier[ROLES]), None) is None:
+                            return CommandResult.error("Такой роли не существует!")
+                        for i, role_object in enumerate(dossier[ROLES]):
+                            if role_object[0] == ctx.message.role_mentions[0].id:
+                                dossier[ROLES][i] = (ctx.message.role_mentions[0].id, " ".join(ctx.args[2:]))
+                                break
+                    # Сохраняем всё
+                    save_cache()
                     # Обновляем сообщение
                     embed = self.create_embed(ctx)
                     guild: discord.Guild = ctx.message.guild
@@ -132,8 +157,7 @@ class RoleReactionModule(Module):
                                 await reaction.clear()
                         # Проставляем недостающие.
                         for i in range(len(dossier[ROLES])):
-                            emoji = EMOJI_START + i
-                            # TODO Есть способ проверить, что фильтр пустой, кроме этого??
+                            emoji = chr(EMOJI_START + i)
                             if next(filter(lambda x: x.emoji == emoji, msg.reactions), None) is None:
                                 await msg.add_reaction(emoji)
                 return CommandResult.ok()
@@ -166,6 +190,10 @@ class RoleReactionModule(Module):
         roles = dossier[ROLES]
         index = ord(payload.emoji.name) - EMOJI_START
         if index not in range(len(roles)):
+            return
+
+        # Расходимся, это обманка.
+        if roles[index][0] == -1:
             return
 
         # Получение роли
