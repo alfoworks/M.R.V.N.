@@ -59,7 +59,7 @@ class RoleReactionModule(Module):
                 else:
                     text += "Пока здесь нет ролей, что бы вы их выбрали. Зато здесь сидит Вампус."
                 # Рисуем эмбед
-                return ctx.get_embed(EmbedType.INFO, text, "RoleReaction")
+                return ctx.get_embed(EmbedType.INFO, text, "RoleReaction", sign=False)
 
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 # Проверки на аргументы
