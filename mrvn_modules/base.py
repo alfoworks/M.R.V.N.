@@ -140,9 +140,11 @@ class BaseModule(Module):
                       should_await=False)
         class DieCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
+                await ctx.message.channel.send(embed=ctx.get_embed(EmbedType.ERROR, "", "До связи."))
+
                 await self.module.bot.close()
 
-                return CommandResult.ok()
+                return CommandResult.ok("")
 
         @mrvn_command(self, "help", "Вывести помощь по конкретной команде", args_desc="<имя команды>")
         class HelpCommand(Command):
