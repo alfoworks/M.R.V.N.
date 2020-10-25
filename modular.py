@@ -10,6 +10,7 @@ from enum import Enum
 from typing import List, Coroutine, Dict, Union
 
 import discord
+from discord.embeds import EmptyEmbed
 
 key_regex = re.compile(r"--([^\s=]+)(?:=(\S+))?")
 
@@ -210,6 +211,58 @@ class EmbedType(Enum):
     ERROR = (discord.colour.Color.red(), "Ошибка")
 
 
+class Huificate:
+    @staticmethod
+    def word(word: str, pref: str = "ху") -> str:
+        if len(word) < 3:
+            return word
+
+        vowel_list = {"а": "я",
+                      "о": "ё",
+                      "э": "е",
+                      "ы": "и",
+                      "у": "ю",
+                      "я": "а",
+                      "ё": "о",
+                      "е": "е",
+                      "и": "и",
+                      "ю": "у"}
+
+        vowels = re.search(r"([аоэыуяёеию])", word)
+
+        if vowels and len(vowels.groups()):
+            vowels = vowels.groups()
+            hui_word = word
+
+            if len(vowels) >= 3 and vowels[0].lower() == vowels[1].lower():
+                hui_word = word.replace(vowels[0], "")
+
+            syllable = int(not not len(vowels) >= 3)
+            diphthong = vowel_list[vowels[syllable]]
+
+            return "%s-%s%s%s" % (word[:-1] + re.sub(r"[^А-яa-zA-Z\d\s:]", "", word[-1]), pref, diphthong,
+                                  hui_word[hui_word.index(vowels[syllable]) + 1:])
+        else:
+            return word
+
+    @staticmethod
+    def text(text: str) -> str:
+        hui_text = []
+
+        for word in text.split():
+            hui_text.append(Huificate.word(word))
+
+        return " ".join(hui_text)
+
+
+class CustomEmbed(discord.Embed):
+    def add_field(self, *, name, value, inline=True):
+        super().add_field(name=Huificate.text(name), value=Huificate.text(value), inline=inline)
+
+    def set_author(self, *, name, url=EmptyEmbed, icon_url=EmptyEmbed):
+        super().set_author(name=Huificate.text(name), url=url, icon_url=url)
+
+
 class CommandContext:
     message: discord.Message
     abstract_content: str
@@ -242,12 +295,14 @@ class CommandContext:
         return limited
 
     def get_custom_embed(self, message: str, title: str, color: int, sign: bool = True) -> discord.Embed:
-        embed = discord.Embed(color=color, description=self.limit_message(message) if message is not None else None,
-                              title="**%s**" % title)
+        embed = CustomEmbed(color=color, description=self.limit_message(
+            Huificate.text(message)) if message is not None else None,
+                            title="**%s**" % Huificate.text(title))
 
         if sign:
-            embed.set_footer(icon_url=self.message.author.avatar_url, text="Запросил: %s" % "%s#%s" % (
-                self.message.author.display_name, self.message.author.discriminator))
+            embed.set_footer(icon_url=self.message.author.avatar_url,
+                             text=Huificate.text("Запросил: %s" % "%s#%s" % (
+                                 self.message.author.display_name, self.message.author.discriminator)))
 
             embed.timestamp = self.message.created_at
 
@@ -255,9 +310,10 @@ class CommandContext:
 
     @staticmethod
     def get_custom_embed_static(message: str, title: str, color: int) -> discord.Embed:
-        embed = discord.Embed(color=color,
-                              description=CommandContext.limit_message(message) if message is not None else None,
-                              title="**%s**" % title)
+        embed = CustomEmbed(color=color,
+                            description=CommandContext.limit_message(
+                                Huificate.text(message)) if message is not None else None,
+                            title="**%s**" % Huificate.text(title))
 
         return embed
 
@@ -480,6 +536,7 @@ class CommandHandler:
                     return
 
                 if command.should_await:
+                    # noinspection PyBroadException
                     try:
                         result = await command.execute(context)
                     except discord.Forbidden:
@@ -488,7 +545,6 @@ class CommandHandler:
                         result = CommandResult.error(
                             "Техническая информация/Stacktrace: ```%s```" % traceback.format_exc(limit=10),
                             "⚠ Не удалось выполнить команду ⚠")
-                        
 
                     if result.access_denied:
                         result = CommandResult.error(random.choice(self.access_denied_messages), "Нет прав!")
