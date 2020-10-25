@@ -240,7 +240,7 @@ class Huificate:
             syllable = int(not not len(vowels) >= 3)
             diphthong = vowel_list[vowels[syllable]]
 
-            return "%s-%s%s%s" % (word[:-1] + re.sub(r"[^А-яa-zA-Z\d\s:]", "", word[-1]), pref, diphthong,
+            return "%s-%s%s%s" % (word[:-1] + re.sub(r"[^А-яa-zA-Z\d\s\n]", "", word[-1]), pref, diphthong,
                                   hui_word[hui_word.index(vowels[syllable]) + 1:])
         else:
             return word
