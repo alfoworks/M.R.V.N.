@@ -19,6 +19,50 @@ class ApiError(Exception):
         self.text = text
 
 
+class Huificate:
+    @staticmethod
+    def word(word: str, pref: str = "ху") -> str:
+        if len(word) < 3:
+            return word
+
+        vowel_list = {"а": "я",
+                      "о": "ё",
+                      "э": "е",
+                      "ы": "и",
+                      "у": "ю",
+                      "я": "а",
+                      "ё": "о",
+                      "е": "е",
+                      "и": "и",
+                      "ю": "у"}
+
+        vowels = re.search(r"([аоэыуяёеию])", word)
+
+        if vowels and len(vowels.groups()):
+            vowels = vowels.groups()
+            hui_word = word
+
+            if len(vowels) >= 3 and vowels[0].lower() == vowels[1].lower():
+                hui_word = word.replace(vowels[0], "")
+
+            syllable = int(not not len(vowels) >= 3)
+            diphthong = vowel_list[vowels[syllable]]
+
+            return "%s-%s%s%s" % (word[:-1] + re.sub(r"[^А-яa-zA-Z\d\s\n]", "", word[-1]), pref, diphthong,
+                                  hui_word[hui_word.index(vowels[syllable]) + 1:])
+        else:
+            return word
+
+    @staticmethod
+    def text(text: str) -> str:
+        hui_text = []
+
+        for word in text.split():
+            hui_text.append(Huificate.word(word))
+
+        return " ".join(hui_text)
+
+
 @mrvn_module("FunStuff", "Модуль, содержащий интересные, но бесполезные команды.")
 class FunStuffModule(Module):
     gay_react_words = ["галя", "гей", "gay", "galya", "cleveron", "клеверон"]
@@ -259,11 +303,11 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
- 
-        @mrvn_command(self, "ita", "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000, используются альтернативные символы.",
+        @mrvn_command(self, "ita",
+                      "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000, используются "
+                      "альтернативные символы.",
                       "<изображение>",
                       ["size=<15 - 1990> - размер арта. 750 по умолчанию."])
-
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 allowed_channel_id = self.module.bot.module_handler.get_param("fun_stuff_ita_allowed_channel")
@@ -310,7 +354,7 @@ class FunStuffModule(Module):
                     for i in range(img.height):
                         for j in range(img.width):
                             pixel = img.getpixel((j, i))
-                            if size<=1000:
+                            if size <= 1000:
                                 res = res + symbols[int((pixel * 7) / 255)]
                             else:
                                 res = res + symbols_alt[int((pixel * 7) / 255)]
@@ -323,6 +367,14 @@ class FunStuffModule(Module):
 
                 else:
                     return CommandResult.args_error()
+
+        @mrvn_command(self, "huificate", "Хуифицировать текст.", "<текст>")
+        class HuificateCommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if not len(ctx.clean_args):
+                    return CommandResult.args_error()
+
+                return CommandResult.info(Huificate.text(" ".join(ctx.clean_args)), "Хуификатор")
 
     async def on_event(self, event_name, *args, **kwargs):
         if event_name == "on_message":
