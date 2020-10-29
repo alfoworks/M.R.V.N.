@@ -39,7 +39,7 @@ class DownloadModule(Module):
 
         @mrvn_command(
             self,
-            "coub",
+            ["coub", "cb"],
             "Команда для парсинга ссылки на Coub для просмотра (или прослушки) его в Discord.",
             "<ссылка> [video/music] (video по умолчанию)")
         class CoubCommand(Command):
@@ -94,7 +94,7 @@ class DownloadModule(Module):
 
         @mrvn_command(
             self,
-            "tube",
+            ["tube", "ytdl"],
             "Команда для парсинга ссылки на YouTube для просмотра (или прослушки) его в Discord.",
             "<ссылка> [video/music] (video по умолчанию)")
         class TubeCommand(Command):

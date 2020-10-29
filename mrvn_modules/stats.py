@@ -3,11 +3,10 @@ import datetime
 import json
 import os
 import time
-from github import Github, GithubObject
-from github import UnknownObjectException
-import github
 
 import discord
+from github import Github
+from github import UnknownObjectException
 
 from decorators import mrvn_command, mrvn_module, command_listener
 from modular import Command, Module, CommandResult, CommandContext, EmbedType, CommandListener, LanguageUtils
@@ -79,7 +78,7 @@ class StatsModule(Module):
         if StatsModule.github_token is None:
             self.logger.error("Github токен не указан.")
 
-        @mrvn_command(self, "actstats",
+        @mrvn_command(self, ["actstats", "actst"],
                       "Показывает статистику по активностям пользователей в их статусе (Играет, Слушает и пр.)")
         class ActStatsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
@@ -106,7 +105,7 @@ class StatsModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "stats", "Показывает статистику бота.")
+        @mrvn_command(self, ["stats", "st"], "Показывает статистику бота.")
         class StatsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 commands_field = ""
@@ -161,7 +160,7 @@ class StatsModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "gitcommits", "Показывает статистику по коммитам из GitHub.", "<repo>",
+        @mrvn_command(self, ["gitcommits", "gc"], "Показывает статистику по коммитам из GitHub.", "<repo>",
                       ["search-by=<message>"])
         class GitCommitsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:

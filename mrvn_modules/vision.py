@@ -15,7 +15,7 @@ service_url = "https://visionbot.ru/index.php"
 @mrvn_module("Vision", "Модуль для автоматического описания изображений.")
 class VisionModule(Module):
     async def on_enable(self):
-        @mrvn_command(self, "vs", "Распознавание объектов с картинки, примерное описание.", "<изображение>")
+        @mrvn_command(self, ["vision", "vs"], "Распознавание объектов с картинки, примерное описание.", "<изображение>")
         class VsCommand(Command):
             @staticmethod
             async def image_scan_task(url, ctx):

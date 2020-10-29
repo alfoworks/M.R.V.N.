@@ -359,7 +359,7 @@ class CommandResult:
 
 
 class Command:
-    name: str
+    aliases: List[str]
     description: str
     args_description: str
     keys_description: List[str]
@@ -367,7 +367,11 @@ class Command:
     module: Module
     should_await: bool
 
-    def __init__(self, name: str, description: str, args_description: str = "", keys_description=None,
+    @property
+    def name(self):
+        return self.aliases[0]
+
+    def __init__(self, aliases: List[str], description: str, args_description: str = "", keys_description=None,
                  perm_handler: PermissionHandler = None, module: Module = None, should_await: bool = True):
         if keys_description is None:
             keys_description = []
@@ -375,7 +379,7 @@ class Command:
         if perm_handler is None:
             perm_handler = AcceptAllPermissionHandler()
 
-        self.name = name
+        self.aliases = aliases
         self.description = description
         self.args_description = args_description
         self.keys_description = keys_description
@@ -388,6 +392,9 @@ class Command:
 
     def get_detailed_name(self) -> str:
         name = self.name
+
+        if len(self.aliases) > 1:
+            name += " (%s)" % "/".join(self.aliases)
 
         if len(self.args_description):
             name += " %s" % self.args_description
@@ -441,6 +448,11 @@ class CommandHandler:
         self.command_listeners = {}
         self.whitelist = whitelist
 
+    def find_command(self, name: str) -> Command:
+        for command in list(self.commands.values()):
+            if name in command.aliases:
+                return command
+
     async def handle(self, message: discord.Message):
         context = self.context_generator.process_message(message)
 
@@ -450,18 +462,19 @@ class CommandHandler:
 
         result: CommandResult
         emoji = None
-        command = None
+        command = self.find_command(context.command_str)
 
         if message.guild.id not in self.whitelist:
             result = CommandResult.error("Этот сервер не состоит в белом списке разрешенных серверов бота.")
-        elif context.command_str not in self.commands:
+        elif not command:
             similar_commands = []
 
             for command in list(self.commands.values()):
-                ratio = difflib.SequenceMatcher(None, context.command_str, command.name).ratio()
+                for alias in command.aliases:
+                    ratio = difflib.SequenceMatcher(None, context.command_str, alias).ratio()
 
-                if ratio > 0.5:
-                    similar_commands.append("%s" % command.name)
+                    if ratio > 0.5:
+                        similar_commands.append("%s" % alias)
 
             result = CommandResult.error("Ты %s\n%s" % (
                 context.abstract_content,
@@ -469,7 +482,6 @@ class CommandHandler:
                     similar_commands) else ""),
                                          "Команда не найдена!")
         else:
-            command = self.commands[context.command_str]
 
             if not command.perm_handler.has_permission(message.author):
                 result = CommandResult.error(random.choice(self.access_denied_messages), "Нет прав!")

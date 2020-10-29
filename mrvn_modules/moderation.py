@@ -84,7 +84,7 @@ class ModerationModule(Module):
 
         await self.bot.module_handler.add_background_task(self.tempmute_task(), self)
 
-        @mrvn_command(self, "purge",
+        @mrvn_command(self, ["purge", "prg"],
                       "Удалить заданное количество сообщений. Из этого количества при указании пользователя удалит "
                       "все его сообщения.",
                       "<1 - 100> [@пользователь]", perm_handler=DiscordPermissionHandler(["manage_messages"]))
@@ -98,7 +98,7 @@ class ModerationModule(Module):
                 except ValueError:
                     return CommandResult.args_error("Вы указали не число.")
 
-                if limit not in range(100):
+                if limit not in range(101):
                     return CommandResult.args_error("Вы указали число меньше 1 или больше 100.")
 
                 def check(msg):
@@ -127,7 +127,7 @@ class ModerationModule(Module):
                                             "сообщения",
                                             "сообщений")))
 
-        @mrvn_command(self, "mute", "Выдать перманентный мут пользователю.", "<@пользователь> [причина]",
+        @mrvn_command(self, ["mute", "mt"], "Выдать перманентный мут пользователю.", "<@пользователь> [причина]",
                       perm_handler=DiscordPermissionHandler(["manage_roles"]))
         class MuteCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
@@ -181,7 +181,7 @@ class ModerationModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "tempmute", "Выдать временный мут пользователю.",
+        @mrvn_command(self, ["tempmute", "tmute", "tmt"], "Выдать временный мут пользователю.",
                       "<@пользователь> <длительность> <s/m/h/d/w> [причина]",
                       perm_handler=DiscordPermissionHandler(["manage_roles"]))
         class CommandTempMute(Command):
@@ -256,7 +256,7 @@ class ModerationModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "unmute", "<@пользователь>", perm_handler=DiscordPermissionHandler(["manage_roles"]))
+        @mrvn_command(self, ["unmute"], "<@пользователь>", perm_handler=DiscordPermissionHandler(["manage_roles"]))
         class CommandUnmute(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.message.mentions) < 1:

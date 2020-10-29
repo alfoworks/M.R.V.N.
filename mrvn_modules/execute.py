@@ -60,7 +60,8 @@ class ExecuteModule(Module):
     user_list = [287157820233875458, 476029018521468928, 337762030138163200, 327420598588276736]
 
     async def on_enable(self):
-        @mrvn_command(self, "execute", "Выполнить Python-код из сообщения", "<\\`\\`\\`Python код\\`\\`\\`>",
+        @mrvn_command(self, ["execute", "exec", "e"], "Выполнить Python-код из сообщения",
+                      "<\\`\\`\\`Python код\\`\\`\\`>",
                       perm_handler=UserWhitelistPermissionHandler(self.user_list))
         class ExecuteCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
@@ -75,7 +76,7 @@ class ExecuteModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "shell", "Выполнить консольную команду.", "<команда>",
+        @mrvn_command(self, ["shell", "sh"], "Выполнить консольную команду.", "<команда>",
                       perm_handler=UserWhitelistPermissionHandler(self.user_list))
         class ShellCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:

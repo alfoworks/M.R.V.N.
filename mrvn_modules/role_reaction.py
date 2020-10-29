@@ -33,7 +33,7 @@ class RoleReactionModule(Module):
             with open(CACHE_FILE) as f:
                 cache = json.load(f)
 
-        @mrvn_command(self, name="rrm",
+        @mrvn_command(self, aliases=["rrm"],
                       desc="Управляйте сообщением, с помощью которого пользователи могут получать роли",
                       args_desc="[create <канал>]/[remove <роли...>]/[add/rename <роль> [описание]]",
                       perm_handler=DiscordPermissionHandler(["administrator"]))

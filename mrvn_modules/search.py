@@ -30,7 +30,7 @@ class SearchModule(Module):
 
         wikipedia.set_lang("ru")
 
-        @mrvn_command(self, "yt", "Поиск видео в YouTube.", "<поисковый запрос>")
+        @mrvn_command(self, ["yt"], "Поиск видео в YouTube.", "<поисковый запрос>")
         class YTCommand(Command):
             class YoutubeSearch:
                 def __init__(self, search_terms: str, max_results=None):
@@ -104,7 +104,7 @@ class SearchModule(Module):
                     keyword, ctx.message.author.mention, "https://youtube.com/" + results[0]["url_suffix"]))
                 return CommandResult.ok()
 
-        @mrvn_command(self, "img", "Поиск изображений в Google.", "<поисковый запрос> [--index=<индекс 0 - 4>]")
+        @mrvn_command(self, ["img"], "Поиск изображений в Google.", "<поисковый запрос> [--index=<индекс 0 - 4>]")
         class ImgCommand(Command):
             @staticmethod
             async def image_task(ctx, keyword, index):
@@ -179,7 +179,7 @@ class SearchModule(Module):
 
                 return CommandResult.ok(wait_emoji=True)
 
-        @mrvn_command(self, "wiki", "Поиск информации в Wikipedia.", "<поисковый запрос>")
+        @mrvn_command(self, ["wiki"], "Поиск информации в Wikipedia.", "<поисковый запрос>")
         class WikiCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.clean_args) < 1:

@@ -12,7 +12,7 @@ from modular import Module, Command, CommandContext, CommandResult, EmbedType, D
 @mrvn_module("BaseModule", "Модуль с основными функциями.")
 class BaseModule(Module):
     async def on_enable(self):
-        @mrvn_command(self, "cmds", "Список команд, их аргументы и описание.", keys_desc=["--all"])
+        @mrvn_command(self, ["cmds", "help"], "Список команд, их аргументы и описание.", keys_desc=["--all"])
         class CmdsCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "", title="Список команд")
@@ -33,7 +33,7 @@ class BaseModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "modules", "Список модулей, их описание.")
+        @mrvn_command(self, ["modules", "mods"], "Список модулей, их описание.")
         class ModulesCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 embed: discord.Embed = ctx.get_embed(EmbedType.INFO,
@@ -47,7 +47,7 @@ class BaseModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "reload", "Перезагрузить все модули бота.",
+        @mrvn_command(self, ["reload", "rd"], "Перезагрузить все модули бота.",
                       perm_handler=DiscordPermissionHandler(["administrator"]), should_await=False)
         class ReloadCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
@@ -71,7 +71,8 @@ class BaseModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "params", "Просмотр и управление параметрами бота.", args_desc="[set <ключ> <значение>]",
+        @mrvn_command(self, ["params", "pr"], "Просмотр и управление параметрами бота.",
+                      args_desc="[set <ключ> <значение>]",
                       perm_handler=DiscordPermissionHandler(["administrator"]))
         class ParamsCommand(Command):
             @staticmethod
@@ -136,7 +137,7 @@ class BaseModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "die", "Выключить бота.", perm_handler=DiscordPermissionHandler(["administrator"]),
+        @mrvn_command(self, ["die", "off"], "Выключить бота.", perm_handler=DiscordPermissionHandler(["administrator"]),
                       should_await=False)
         class DieCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
@@ -146,15 +147,15 @@ class BaseModule(Module):
 
                 return CommandResult.ok("")
 
-        @mrvn_command(self, "help", "Вывести помощь по конкретной команде", args_desc="<имя команды>")
+        @mrvn_command(self, ["man", "info"], "Вывести помощь по конкретной команде", args_desc="<имя команды>")
         class HelpCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if len(ctx.args) < 1:
                     return CommandResult.args_error()
 
-                try:
-                    command = self.module.bot.command_handler.commands[ctx.args[0].lower()]
-                except KeyError:
+                command = self.module.bot.command_handler.find_command(ctx.args[0].lower())
+
+                if not command:
                     return CommandResult.error("Команда с таким именем не найдена.")
 
                 embed: discord.Embed = ctx.get_embed(EmbedType.INFO, "", "Информация о команде")

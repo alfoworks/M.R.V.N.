@@ -77,8 +77,8 @@ class FunStuffModule(Module):
 
         self.bot.module_handler.add_param("fun_stuff_ita_allowed_channel", 0)
 
-        @mrvn_command(self, "rtr", "Перевести текст на рандомный или выбранный язык и обратно, что сделает его очень "
-                                   "странным.",
+        @mrvn_command(self, ["rtr"], "Перевести текст на рандомный или выбранный язык и обратно, что сделает его очень "
+                                     "странным.",
                       "<текст>", keys_desc=["cmd=<имя команды>", "lang=<язык, 2 символа>"])
         class RtrCommand(Command):
             @staticmethod
@@ -121,9 +121,9 @@ class FunStuffModule(Module):
                     if command_name == self.name:
                         return CommandResult.error("Так низя.")
 
-                    try:
-                        command = self.module.bot.command_handler.commands[command_name]
-                    except KeyError:
+                    command = self.module.bot.command_handler.find_command(command_name)
+
+                    if not command:
                         return CommandResult.error("Команда не найдена.")
 
                     # noinspection PyBroadException
@@ -150,7 +150,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.ok(wait_emoji=True)
 
-        @mrvn_command(self, "tte", "TextToEmoji - преобразовать буквы из текста в буквы-эмодзи", args_desc="<текст>")
+        @mrvn_command(self, ["tte"], "TextToEmoji - преобразовать буквы из текста в буквы-эмодзи", args_desc="<текст>")
         class TTECommand(Command):
             emojiDict = {"a": "🇦", "b": "🇧", "c": "🇨", "d": "🇩", "e": "🇪", "f": "🇫", "g": "🇬", "h": "🇭",
                          "i": "🇮",
@@ -175,7 +175,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "choice", "Выбрать рандомный вариант из предоставленных", "<1, 2, 3...>")
+        @mrvn_command(self, ["choice"], "Выбрать рандомный вариант из предоставленных", "<1, 2, 3...>")
         class ChoiceCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 choices = " ".join(ctx.clean_args).split(", ")
@@ -185,7 +185,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.ok("Я выбираю `\"%s\"`" % random.choice(choices))
 
-        @mrvn_command(self, "prntscr", "Рандомный скриншот с сервиса LightShot")
+        @mrvn_command(self, ["prntscr"], "Рандомный скриншот с сервиса LightShot")
         class PrntScrCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 chars = "abcdefghijklmnopqrstuvwxyz1234567890"
@@ -227,7 +227,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.ok()
 
-        @mrvn_command(self, "joke", "Шутник 3000!")
+        @mrvn_command(self, ["joke"], "Шутник 3000!")
         class CommandJoke(Command):
             phrases = ["ыыы ёпта бля", "писос", "вот это прикол", "короче", "иду я такой", "а он", "ахуеть можно",
                        "ваще",
@@ -264,7 +264,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Шутник 3000")
 
-        @mrvn_command(self, "beucode",
+        @mrvn_command(self, ["beucode"],
                       "Компилятор текста в Беукод и обратно. Команда автоматически преобразовывает Беукод в текст или "
                       "текст в Беукод, в зависимости от того, что вы укажете.",
                       "<текст или Беукод>")
@@ -303,7 +303,7 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
-        @mrvn_command(self, "ita",
+        @mrvn_command(self, ["ita", "ascii"],
                       "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000, используются "
                       "альтернативные символы.",
                       "<изображение>",
@@ -368,7 +368,7 @@ class FunStuffModule(Module):
                 else:
                     return CommandResult.args_error()
 
-        @mrvn_command(self, "huificate", "Хуифицировать текст.", "<текст>")
+        @mrvn_command(self, ["huificate", "hui"], "Хуифицировать текст.", "<текст>")
         class HuificateCommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 if not len(ctx.clean_args):
