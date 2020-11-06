@@ -394,7 +394,7 @@ class Command:
         name = self.name
 
         if len(self.aliases) > 1:
-            name += " (%s)" % "/".join(self.aliases)
+            name += " (%s)" % "/".join(self.aliases[1:])
 
         if len(self.args_description):
             name += " %s" % self.args_description
@@ -568,7 +568,7 @@ class Bot(discord.Client):
 
     def __init__(self, name: str, module_handler: ModuleHandler,
                  command_handler: CommandHandler, start_time: float):
-        super().__init__()
+        super().__init__(intents=discord.Intents.all())
 
         self.name = name
         self.module_handler = module_handler
