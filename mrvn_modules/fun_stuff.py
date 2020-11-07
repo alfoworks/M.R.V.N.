@@ -376,6 +376,32 @@ class FunStuffModule(Module):
 
                 return CommandResult.info(Huificate.text(" ".join(ctx.clean_args)), "Хуификатор")
 
+        @mrvn_command(self, ["porngen", "pg"], "Сгенерировать случайный заголовок для порно.")
+        class PornGenCommand(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                context_list = ["Во время урока географии ",
+                                "Пока муж отошел в магазин, ",
+                                "Вместо фитнеса ",
+                                "Перед прогулкой ",
+                                "Рождественская вечеринка проходила скучно, но ",
+                                "По ошибке попав на вечеринку бодибилдеров, "]
+                role_list = ["незадачливый курьер и изголодавшиеся милфы ",
+                             "украинская студентка со своим мускулистым парнем ",
+                             "чернокожие парни и миниатюрная блондинка ",
+                             "Джонни Синс и Эльза Джин "]
+                adj_list = ["страстно ", "лениво ", "незатейливо ", "медленно ", "нежно ", "жёстко "]
+                verb_list = ["ебались во все щели ", "трахались ", "спаривались "]
+                condition_list = ["в ванной.", "в гостиной.", "на улице.", "будучи пьяными.", "пока мужа нет дома.",
+                                  "пока родителей нет дома.", "слушая беубасс."]
+
+                out = ''.join([random.choice(i) for i in [context_list,
+                                                          role_list,
+                                                          adj_list,
+                                                          verb_list,
+                                                          condition_list]])
+                return CommandResult.info(out, "Генератор порно")
+
+
     async def on_event(self, event_name, *args, **kwargs):
         if event_name == "on_message":
             message: discord.Message = args[0]
