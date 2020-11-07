@@ -10,6 +10,7 @@ from enum import Enum
 from typing import List, Coroutine, Dict, Union
 
 import discord
+from discord.embeds import EmptyEmbed
 
 key_regex = re.compile(r"--([^\s=]+)(?:=(\S+))?")
 
@@ -37,7 +38,7 @@ class LanguageUtils:
         return "%s %s" % (number, pluralized)
 
     @staticmethod
-    def formatted_duration(secs: int) -> str:
+    def formatted_duration(secs: int, format_to: int = 2) -> str:
         days = round(secs // 86400)
         hours = round((secs - days * 86400) // 3600)
         minutes = round((secs - days * 86400 - hours * 3600) // 60)
@@ -49,9 +50,9 @@ class LanguageUtils:
         seconds_text = LanguageUtils.pluralize(seconds, "секунда", "секунды", "секунд")
 
         formatted = ", ".join(filter(lambda x: bool(x), [days_text if days else "",
-                                                         hours_text if hours else "",
-                                                         minutes_text if minutes else "",
-                                                         seconds_text if seconds else ""]))
+                                                         hours_text if hours and format_to == 0 else "",
+                                                         minutes_text if minutes and format_to > 0 else "",
+                                                         seconds_text if seconds and format_to > 1 else ""]))
 
         return formatted
 
@@ -242,12 +243,14 @@ class CommandContext:
         return limited
 
     def get_custom_embed(self, message: str, title: str, color: int, sign: bool = True) -> discord.Embed:
-        embed = discord.Embed(color=color, description=self.limit_message(message) if message is not None else None,
+        embed = discord.Embed(color=color, description=self.limit_message(
+            message) if message is not None else None,
                               title="**%s**" % title)
 
         if sign:
-            embed.set_footer(icon_url=self.message.author.avatar_url, text="Запросил: %s" % "%s#%s" % (
-                self.message.author.display_name, self.message.author.discriminator))
+            embed.set_footer(icon_url=self.message.author.avatar_url,
+                             text="Запросил: %s" % "%s#%s" % (
+                                 self.message.author.display_name, self.message.author.discriminator))
 
             embed.timestamp = self.message.created_at
 
@@ -256,7 +259,8 @@ class CommandContext:
     @staticmethod
     def get_custom_embed_static(message: str, title: str, color: int) -> discord.Embed:
         embed = discord.Embed(color=color,
-                              description=CommandContext.limit_message(message) if message is not None else None,
+                              description=CommandContext.limit_message(
+                                  message) if message is not None else None,
                               title="**%s**" % title)
 
         return embed
@@ -355,7 +359,7 @@ class CommandResult:
 
 
 class Command:
-    name: str
+    aliases: List[str]
     description: str
     args_description: str
     keys_description: List[str]
@@ -363,7 +367,11 @@ class Command:
     module: Module
     should_await: bool
 
-    def __init__(self, name: str, description: str, args_description: str = "", keys_description=None,
+    @property
+    def name(self):
+        return self.aliases[0]
+
+    def __init__(self, aliases: List[str], description: str, args_description: str = "", keys_description=None,
                  perm_handler: PermissionHandler = None, module: Module = None, should_await: bool = True):
         if keys_description is None:
             keys_description = []
@@ -371,7 +379,7 @@ class Command:
         if perm_handler is None:
             perm_handler = AcceptAllPermissionHandler()
 
-        self.name = name
+        self.aliases = aliases
         self.description = description
         self.args_description = args_description
         self.keys_description = keys_description
@@ -384,6 +392,9 @@ class Command:
 
     def get_detailed_name(self) -> str:
         name = self.name
+
+        if len(self.aliases) > 1:
+            name += " (%s)" % "/".join(self.aliases[1:])
 
         if len(self.args_description):
             name += " %s" % self.args_description
@@ -437,6 +448,11 @@ class CommandHandler:
         self.command_listeners = {}
         self.whitelist = whitelist
 
+    def find_command(self, name: str) -> Command:
+        for command in list(self.commands.values()):
+            if name in command.aliases:
+                return command
+
     async def handle(self, message: discord.Message):
         context = self.context_generator.process_message(message)
 
@@ -446,18 +462,19 @@ class CommandHandler:
 
         result: CommandResult
         emoji = None
-        command = None
+        command = self.find_command(context.command_str)
 
         if message.guild.id not in self.whitelist:
             result = CommandResult.error("Этот сервер не состоит в белом списке разрешенных серверов бота.")
-        elif context.command_str not in self.commands:
+        elif not command:
             similar_commands = []
 
             for command in list(self.commands.values()):
-                ratio = difflib.SequenceMatcher(None, context.command_str, command.name).ratio()
+                for alias in command.aliases:
+                    ratio = difflib.SequenceMatcher(None, context.command_str, alias).ratio()
 
-                if ratio > 0.5:
-                    similar_commands.append("%s" % command.name)
+                    if ratio > 0.5:
+                        similar_commands.append("%s" % alias)
 
             result = CommandResult.error("Ты %s\n%s" % (
                 context.abstract_content,
@@ -465,7 +482,6 @@ class CommandHandler:
                     similar_commands) else ""),
                                          "Команда не найдена!")
         else:
-            command = self.commands[context.command_str]
 
             if not command.perm_handler.has_permission(message.author):
                 result = CommandResult.error(random.choice(self.access_denied_messages), "Нет прав!")
@@ -480,13 +496,14 @@ class CommandHandler:
                     return
 
                 if command.should_await:
+                    # noinspection PyBroadException
                     try:
                         result = await command.execute(context)
                     except discord.Forbidden:
                         result = CommandResult.error("У бота нет прав, чтобы совершить это действие!")
                     except Exception:
                         result = CommandResult.error(
-                            "Техническая информация/Stacktrace: \n```%s```" % traceback.format_exc(),
+                            "Техническая информация/Stacktrace: ```%s```" % traceback.format_exc(limit=10),
                             "⚠ Не удалось выполнить команду ⚠")
 
                     if result.access_denied:
@@ -551,7 +568,7 @@ class Bot(discord.Client):
 
     def __init__(self, name: str, module_handler: ModuleHandler,
                  command_handler: CommandHandler, start_time: float):
-        super().__init__()
+        super().__init__(intents=discord.Intents.all())
 
         self.name = name
         self.module_handler = module_handler

@@ -1,3 +1,5 @@
+from typing import List
+
 import modular
 
 
@@ -19,7 +21,7 @@ def mrvn_module(name: str, desc: str):
     return decorator
 
 
-def mrvn_command(module: modular.Module, name: str, desc: str, args_desc: str = "", keys_desc=None,
+def mrvn_command(module: modular.Module, aliases: List[str], desc: str, args_desc: str = "", keys_desc=None,
                  perm_handler: modular.PermissionHandler = None, should_await: bool = True,
                  special_handler: modular.CommandHandler = None):
     if keys_desc is None:
@@ -32,7 +34,7 @@ def mrvn_command(module: modular.Module, name: str, desc: str, args_desc: str = 
         handler: modular.CommandHandler = module.bot.command_handler if special_handler is None else special_handler
 
         handler.register_command(
-            cls(name, desc, args_desc, keys_desc, perm_handler, module, should_await))
+            cls(aliases, desc, args_desc, keys_desc, perm_handler, module, should_await))
 
         return cls
 

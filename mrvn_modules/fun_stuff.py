@@ -401,6 +401,7 @@ class FunStuffModule(Module):
                                                           condition_list]])
                 return CommandResult.info(out, "Генератор порно")
 
+
     async def on_event(self, event_name, *args, **kwargs):
         if event_name == "on_message":
             message: discord.Message = args[0]

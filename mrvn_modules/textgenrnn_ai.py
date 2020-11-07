@@ -16,7 +16,7 @@ class TextgenrnnAI(Module):
             model_loaded = True
 
             def __init__(self, title, file_name, command_name, color, module):
-                super().__init__(command_name, "ИИ %s" % title, args_description="[prefix=<префикс>]", module=module)
+                super().__init__([command_name], "ИИ %s" % title, args_description="[prefix=<префикс>]", module=module)
 
                 self.title = title
                 self.file_name = file_name
