@@ -468,10 +468,11 @@ class CommandHandler:
             result = CommandResult.error("Этот сервер не состоит в белом списке разрешенных серверов бота.")
         elif not command:
             similar_commands = []
-
+            matcher = difflib.SequenceMatcher(None, context.command_str)
             for command in list(self.commands.values()):
                 for alias in command.aliases:
-                    ratio = difflib.SequenceMatcher(None, context.command_str, alias).ratio()
+                    matcher.set_seq2(alias)
+                    ratio = matcher.ratio()
 
                     if ratio > 0.5:
                         similar_commands.append("%s" % alias)
