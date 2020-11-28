@@ -439,11 +439,11 @@ class CommandHandler:
     whitelist: List[int]
     logger: Logger
 
-    def __init__(self, context_generator: ContextGenerator, whitelist: List[int]):
+    def __init__(self, context_generator: ContextGenerator, whitelist: List[int], quiet: bool =False):
         self.context_generator = context_generator
         self.whitelist = whitelist
         self.logger = Logger('CommandHandler')
-
+        self.quiet = quiet
         self.commands = {}
         self.command_listeners = {}
         self.whitelist = whitelist
@@ -465,8 +465,12 @@ class CommandHandler:
         command = self.find_command(context.command_str)
 
         if message.guild.id not in self.whitelist:
+            if self.quiet:
+                return
             result = CommandResult.error("Этот сервер не состоит в белом списке разрешенных серверов бота.")
         elif not command:
+            if self.quiet:
+                return
             similar_commands = []
             matcher = difflib.SequenceMatcher(None, context.command_str)
             for command in list(self.commands.values()):
