@@ -404,6 +404,14 @@ class Command:
 
         return name
 
+    def get_slash_command(self) -> Dict:
+        slash_command = {
+            "name": self.name,
+            "description": self.description
+        }
+
+        return slash_command
+
 
 class CommandListener:
     module: Module
