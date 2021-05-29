@@ -304,10 +304,11 @@ class FunStuffModule(Module):
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
         @mrvn_command(self, ["ita", "ascii"],
-                      "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000, используются "
+                      "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000 в стандартном режиме, используются "
                       "альтернативные символы.",
                       "<изображение>",
-                      ["size=<15 - 1990> - размер арта. 750 по умолчанию."])
+                      ["size=<15 - (1990 для стандартного режима, 1990*8 для брайля)> - размер арта. 750 по умолчанию для обычного режима, 8000 для брайля.",
+                       "braille - режим отрисовки символами брайля"])
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 allowed_channel_id = self.module.bot.module_handler.get_param("fun_stuff_ita_allowed_channel")
@@ -332,39 +333,79 @@ class FunStuffModule(Module):
                     except (IOError, TypeError):
                         return CommandResult.error("В этом файле не удалось прочитать сообщение.")
 
-                    size = 750
+                    size = 8000 if "braille" in ctx.keys else 750
 
                     if "size" in ctx.keys:
                         try:
-                            size = max(min(1990, int(ctx.keys["size"])), 15)
+                            size = max(min(1990*8 if "braille" in ctx.keys else 1990, int(ctx.keys["size"])), 15)
                         except ValueError:
                             return CommandResult.args_error("Укажите число.")
-
-                    img = img.convert("L")
-                    img = ImageEnhance.Contrast(img).enhance(1.5)
-
-                    symbols = ["░░", "░░", "▒▒", "▒▒", "▓▓", "▓▓", "██", "██"]
-                    symbols_alt = ["░", "░", "▒", "▒", "▓", "▓", "█", "█"]
-
-                    res = ""
 
                     asp = math.sqrt((img.height * img.width) / size)
                     img = img.resize((int(img.size[0] / asp), int(img.size[1] / asp)), Image.ANTIALIAS)
 
-                    for i in range(img.height):
-                        for j in range(img.width):
-                            pixel = img.getpixel((j, i))
-                            if size <= 1000:
-                                res = res + symbols[int((pixel * 7) / 255)]
-                            else:
-                                res = res + symbols_alt[int((pixel * 7) / 255)]
-                        res = res + "\n"
+                    img = img.convert("L")
+                    img = ImageEnhance.Contrast(img).enhance(1.5)
 
-                    os.remove("src_image_%s.png" % ctx.message.id)
-                    await ctx.message.channel.send("```%s```" % res)
+                    if "braille" in ctx.keys:
+                        """
+                        У брайля анальная нумерация
+                        ,___,
+                        |1 4|
+                        |2 5|
+                        |3 6|
+                        |7 8|
+                        `````
+                        
+                        Т.е. например если в 1 позиции будет точка и во 2 позиции будет точка, то код символа брайля
+                        будет 12 (DOTS-12)
+                        Но при этом еще надо под эту хуйню подобрать номер в таблице Unicode
+                        Эту таблицу я спиздил, реализация моя
+                        """
+                        pixel_map = ((0x01, 0x08),
+                                     (0x02, 0x10),
+                                     (0x04, 0x20),
+                                     (0x40, 0x80))
+
+                        symbols = []
+                        for m in range(0, img.height-3, 4):
+                            for k in range(0, img.width-1, 2):
+                                sum = 0
+                                for i in range(4):
+                                    for j in range(2):
+                                        if img.getpixel((k+j, m+i)) > 255//2:
+                                            sum += pixel_map[i][j]
+                                symbols.append(chr(0x2800+sum))
+                        os.remove("src_image_%s.png" % ctx.message.id)
+                        res = ""
+                        count = 0
+                        for h in range(img.height // 4):
+                            for w in range(img.width // 2):
+                                res += symbols[count]
+                                count += 1
+                            res += '\n'
+                        await ctx.message.channel.send("```%s```" % res)
+                    else:
+                        symbols = ["░░", "░░", "▒▒", "▒▒", "▓▓", "▓▓", "██", "██"]
+                        symbols_alt = ["░", "░", "▒", "▒", "▓", "▓", "█", "█"]
+
+                        res = ""
+
+                        for i in range(img.height):
+                            for j in range(img.width):
+                                pixel = img.getpixel((j, i))
+                                if size <= 1000:
+                                    res = res + symbols[int((pixel * 7) / 255)]
+                                else:
+                                    res = res + symbols_alt[int((pixel * 7) / 255)]
+                            res = res + "\n"
+
+                        os.remove("src_image_%s.png" % ctx.message.id)
+                        await ctx.message.channel.send("```%s```" % res)
+
+                        return CommandResult.ok()
 
                     return CommandResult.ok()
-
                 else:
                     return CommandResult.args_error()
 
