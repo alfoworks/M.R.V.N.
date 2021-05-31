@@ -304,11 +304,17 @@ class FunStuffModule(Module):
                 return CommandResult.info(out, "Беукод (режим: %s)" % ("Beucode ➡ Text" if mode else "Text ➡ Beucode"))
 
         @mrvn_command(self, ["ita", "ascii"],
-                      "Преобразование картинки в ASCII-арт. В случае того если размер больше 1000 в стандартном режиме, используются "
+                      "Преобразование картинки в ASCII-арт."
+                      " В случае того если размер больше 1000 в стандартном режиме, используются "
                       "альтернативные символы.",
                       "<изображение>",
-                      ["size=<15 - (1990 для стандартного режима, 1990*8 для брайля)> - размер арта. 750 по умолчанию для обычного режима, 8000 для брайля.",
-                       "braille - режим отрисовки символами брайля"])
+                      [
+                          "size=<15 - (1990 для стандартного режима, 1990*8 для брайля)> - размер арта."
+                          " 750 по умолчанию для обычного режима, 8000 для брайля.",
+                          "braille - режим отрисовки символами брайля",
+                          "limit - допуск 0-255 (значение грейскейла,"
+                          " значения больше которого будут восприниматься как белый пиксель)"
+                      ])
         class ITACommand(Command):
             async def execute(self, ctx: CommandContext) -> CommandResult:
                 allowed_channel_id = self.module.bot.module_handler.get_param("fun_stuff_ita_allowed_channel")
@@ -337,7 +343,7 @@ class FunStuffModule(Module):
 
                     if "size" in ctx.keys:
                         try:
-                            size = max(min(1990*8 if "braille" in ctx.keys else 1990, int(ctx.keys["size"])), 15)
+                            size = max(min(1990 * 8 if "braille" in ctx.keys else 1990, int(ctx.keys["size"])), 15)
                         except ValueError:
                             return CommandResult.args_error("Укажите число.")
 
@@ -356,7 +362,7 @@ class FunStuffModule(Module):
                         |3 6|
                         |7 8|
                         `````
-                        
+
                         Т.е. например если в 1 позиции будет точка и во 2 позиции будет точка, то код символа брайля
                         будет 12 (DOTS-12)
                         Но при этом еще надо под эту хуйню подобрать номер в таблице Unicode
@@ -368,14 +374,25 @@ class FunStuffModule(Module):
                                      (0x40, 0x80))
 
                         symbols = []
-                        for m in range(0, img.height-3, 4):
-                            for k in range(0, img.width-1, 2):
+                        if "limit" in ctx.keys:
+                            if ctx.keys["limit"]:
+                                if 0 < int(ctx.keys["limit"]) < 255:
+                                    limit = int(ctx.keys["limit"])
+                                else:
+                                    CommandResult.args_error("Параметр limit должен удовлетворять"
+                                                             " 0 < limit < 255")
+                            else:
+                                CommandResult.args_error("Укажите число.")
+                        else:
+                            limit = 255 // 2
+                        for m in range(0, img.height - 3, 4):
+                            for k in range(0, img.width - 1, 2):
                                 sum = 0
                                 for i in range(4):
                                     for j in range(2):
-                                        if img.getpixel((k+j, m+i)) > 255//2:
+                                        if img.getpixel((k + j, m + i)) > limit:
                                             sum += pixel_map[i][j]
-                                symbols.append(chr(0x2800+sum))
+                                symbols.append(chr(0x2800 + sum))
                         os.remove("src_image_%s.png" % ctx.message.id)
                         res = ""
                         count = 0
@@ -441,7 +458,6 @@ class FunStuffModule(Module):
                                                           verb_list,
                                                           condition_list]])
                 return CommandResult.info(out, "Генератор порно")
-
 
     async def on_event(self, event_name, *args, **kwargs):
         if event_name == "on_message":
