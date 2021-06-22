@@ -503,7 +503,8 @@ class CommandHandler:
                 if command.should_await:
                     # noinspection PyBroadException
                     try:
-                        result = await command.execute(context)
+                        async with context.message.channel.typing():
+                            result = await command.execute(context)
                     except discord.Forbidden:
                         result = CommandResult.error("У бота нет прав, чтобы совершить это действие!")
                     except Exception:

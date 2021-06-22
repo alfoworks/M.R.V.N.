@@ -1,5 +1,7 @@
 import binascii
+import json
 import math
+import socket
 
 import aiohttp
 import requests
@@ -7,7 +9,7 @@ from PIL import Image, ImageEnhance
 from aiohttp import ClientTimeout
 from bs4 import BeautifulSoup
 from requests import RequestException
-
+import http.client
 from decorators import mrvn_module, mrvn_command
 from modular import *
 
@@ -76,6 +78,52 @@ class FunStuffModule(Module):
             self.logger.error("Ключ Yandex Translator API не указан. Команда rtr не будет работать.")
 
         self.bot.module_handler.add_param("fun_stuff_ita_allowed_channel", 0)
+
+        @mrvn_command(self, ["balaboba", "blb", "yalm"], "https://yandex.ru/lab/yalm", "<текст>")
+        class Yalm(Command):
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(ctx.clean_args) == 0:
+                    return CommandResult.args_error()
+
+                text = " ".join(ctx.clean_args)
+
+                if len(text) > 145:
+                    return CommandResult.error("Превышен размер исходного текста.")
+
+                try:
+                    conn = http.client.HTTPSConnection("zeapi.yandex.net")
+                    payload = json.dumps({
+                        "query": text,
+                        "intro": 0,
+                        "filter": 1
+                    })
+                    headers = {
+                        'Content-Type': 'application/json',
+                    }
+                    conn.request("POST", "/lab/api/yalm/text3", payload, headers)
+                    response = conn.getresponse()
+                    data = response.read()
+
+                    if response.status != 200:
+                        return CommandResult.error("Эта команда больше не работает :(")
+
+                    response_data = json.loads(data.decode("utf-8"))
+
+                    if response_data["bad_query"] == 1:
+                        return CommandResult.error("Слишком жидкий текст. Попробуйте смягчить его.")
+                    elif response_data["error"] == 1:
+                        return CommandResult.error("Ошибка сервиса.")
+
+                    fucking_embed = ctx.get_embed(EmbedType.INFO,
+                                                  "**%s** %s" % (response_data["query"], response_data["text"]),
+                                                  "Яндекс.Балабоба")
+                    fucking_embed.color = 0xffdb4d
+
+                    await ctx.message.channel.send(embed=fucking_embed)
+
+                    return CommandResult.ok()
+                except (http.client.HTTPException, socket.gaierror):
+                    return CommandResult.error("Не удалось подключиться к серверу.")
 
         @mrvn_command(self, ["rtr"], "Перевести текст на рандомный или выбранный язык и обратно, что сделает его очень "
                                      "странным.",
