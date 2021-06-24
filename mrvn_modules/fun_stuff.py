@@ -87,7 +87,7 @@ class FunStuffModule(Module):
 
                 text = " ".join(ctx.clean_args)
 
-                if len(text) > 145:
+                if len(text) > 9999:
                     return CommandResult.error("Превышен размер исходного текста.")
 
                 try:
