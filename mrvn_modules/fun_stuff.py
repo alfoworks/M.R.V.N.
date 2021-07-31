@@ -90,6 +90,8 @@ class FunStuffModule(Module):
                 embed = ctx.get_embed(EmbedType.INFO, random.choice(self.response_list))
                 embed.set_author(name="Magic 8 ball", icon_url="https://upload.wikimedia.org/wikipedia/commons/e/eb/Magic_eight_ball.png")
                 
+                await ctx.message.channel.send(embed=embed)
+                
                 return CommandResult.ok()
 
         @mrvn_command(self, ["balaboba", "blb", "yalm"], "https://yandex.ru/lab/yalm", "<текст>")
