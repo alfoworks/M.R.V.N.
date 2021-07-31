@@ -78,6 +78,19 @@ class FunStuffModule(Module):
             self.logger.error("Ключ Yandex Translator API не указан. Команда rtr не будет работать.")
 
         self.bot.module_handler.add_param("fun_stuff_ita_allowed_channel", 0)
+        
+        @mrvn_command(self, ["8ball", "8b"], "8ball", "<текст>")
+        class EightBall(Command):
+            response_list = ["Бесспорно", "Предрешено", "Никаких сомнений", "Определённо да", "Можешь быть уверен в этом", "Мне кажется - да", "Вероятнее всего", "Хорошие перспективы", "Знаки говорят - да", "Да", "Пока не ясно, попробуй снова", "Спроси позже", "Лучше не рассказывать", "Сейчас нельзя предсказать", "Сконцентрируйся и спроси опять", "Даже не думай", "Мой ответ - нет", "По моим данным - нет", "Перспективы не очень хорошие", "Весьма сомнительно"]
+            
+            async def execute(self, ctx: CommandContext) -> CommandResult:
+                if len(" ".join(ctx.clean_args)) == 0:
+                    return CommandResult.args_error("Вы не указали текст.")
+                
+                embed = ctx.get_embed(EmbedType.INFO, random.choice(self.response_list))
+                embed.set_author(name="Magic 8 ball", icon_url="https://upload.wikimedia.org/wikipedia/commons/e/eb/Magic_eight_ball.png")
+                
+                return CommandResult.ok()
 
         @mrvn_command(self, ["balaboba", "blb", "yalm"], "https://yandex.ru/lab/yalm", "<текст>")
         class Yalm(Command):
