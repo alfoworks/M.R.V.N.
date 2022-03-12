@@ -1,3 +1,7 @@
+# Доступна новая версия бота
+# New bot is available
+https://github.com/IteratorW/MRVN_Mk2
+
 # M.R.V.N.
 Модульный Discord бот.
 ## Документация
